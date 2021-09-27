@@ -20,13 +20,15 @@ FFMPEGWrapper::FFMPEGWrapper()
 	}
 }
 
-bool FFMPEGWrapper::exportFile(const QString & filePath, double MBitRate, const Resolution & res, const Codec & codec, int HardwareAccelleration, int Framerate)
+bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & settings, double MBitRate, const Resolution & res, const Codec & codec, int HardwareAccelleration, int Framerate)
 {
+	const QString & filePath = video.filePath;
 	QString expFilePath = getExportFilePath(filePath);
 	std::cout << "Export File Path: " << expFilePath.toStdString().c_str() << std::endl;
 	QString cmd = "ffmpeg -y ";
 	//options part 1
-	QString hwacc = getHardwareAccelerationString(HardwareAccelleration);
+	QString trimming = getTrimString(settings.start, settings.end, video);
+	
 	QString inputFile = getInputFileString(filePath);
 
 	//filters
@@ -35,12 +37,17 @@ bool FFMPEGWrapper::exportFile(const QString & filePath, double MBitRate, const 
 	QString scaleFilter = getScaleFilterString(res, HardwareAccelleration);
 
 	//options part2
-	QString audioCodec = getAudioCodecString();
+	QString audioCodec = getAudioCodecString(settings.start == QTime(0,0) || !settings.trim);
 	QString videoCodec = getVideoCodecString(codec, HardwareAccelleration);
 	QString bitrate = getMBitRateString(MBitRate);
 	QString outputFile = getOutputFileString(expFilePath);
 
+	//options part1 hwac
+	QString hwacc = getHardwareAccelerationString(HardwareAccelleration, scaleFilter.length() > 0);
+
 	//add options part 1
+	if (trimming.length() > 0 && settings.trim)
+		cmd += trimming + " ";
 	if (hwacc.length() > 0)
 		cmd += hwacc + " ";
 	cmd += inputFile + " ";
@@ -65,7 +72,7 @@ bool FFMPEGWrapper::exportFile(const QString & filePath, double MBitRate, const 
 	std::cout << cmd.toStdString() << std::endl;
 	//execute command
 	int exitCode = system(cmd.toStdString().c_str());
-    return exitCode == 0;
+	return exitCode == 0;
 }
 
 QString FFMPEGWrapper::getFileName(QString const & filePath)
@@ -92,6 +99,18 @@ QString FFMPEGWrapper::getExportFilePath(QString const & filePath)
 {
 	QString fileName = getFileName(filePath);
 	return getPath(filePath) + getExportFileName(fileName);
+}
+
+QString FFMPEGWrapper::getTrimString(QTime const & start, QTime const & end, Video const & video)
+{
+	QString trim("");
+	if (start > QTime(0, 0)) {
+		trim.append("-ss " + toTimeString(start));
+	}
+	if (end < video.length) {
+		trim.append(" -to " + toTimeString(end));
+	}
+	return trim;
 }
 
 QString FFMPEGWrapper::getMBitRateString(double MBitRate)
@@ -136,17 +155,20 @@ QString FFMPEGWrapper::getVideoCodecString(Codec const & codec, int HardwareAcce
 	}
 }
 
-QString FFMPEGWrapper::getAudioCodecString()
+QString FFMPEGWrapper::getAudioCodecString(bool canCopy)
 {
-	return QString("-c:a copy");
+	if (canCopy)
+		return QString("-c:a copy");
+	else
+		return QString("");
 }
 
-QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration)
+QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration, bool usesScaleFilter)
 {
 	switch (HardwareAcceleration)
 	{
 	case(HARDWARE_ACCELERATION::NVIDIA):
-		return QString("-hwaccel cuda -hwaccel_output_format cuda");
+		return QString("-hwaccel cuda") + (usesScaleFilter ? QString(" -hwaccel_output_format cuda") : QString(""));
 	default:
 		return QString("");
 	}
@@ -154,10 +176,33 @@ QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration)
 
 QString FFMPEGWrapper::getInputFileString(QString const & filePath)
 {
-	return "-i  \"" + filePath + "\"";
+	return "-i \"" + filePath + "\"";
 }
 
 QString FFMPEGWrapper::getOutputFileString(QString const & filePath)
 {
 	return "\"" + filePath + "\"";
 }
+
+QString FFMPEGWrapper::toTimeString(QTime const & t)
+{
+	QString time = toDigits(t.hour(), 2) + ":" + toDigits(t.minute(), 2) + ":" + toDigits(t.second(), 2) + "." + toDigits(t.msec(), 3);
+	return time;
+}
+
+QString FFMPEGWrapper::toDigits(int number, int digits)
+{
+	if (number < 0)
+		throw std::runtime_error("Number must be positive");
+	int temp = 10;
+	QString string("");
+	for (int i = 0; i < digits - 1; i++) {
+		if(number < temp){
+			string += "0";
+		}
+		temp *= 10;
+	}
+	string += QString::number(number);
+	return string;
+}
+

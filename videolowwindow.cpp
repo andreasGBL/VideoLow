@@ -7,13 +7,18 @@
 
 #include <iostream>
 
+
 VideoLowWindow::VideoLowWindow(QWidget * parent)
 	: QMainWindow(parent)
 	, ffmpeg()
 	, ui(new Ui::VideoLowWindow)
 {
 	ui->setupUi(this);
+    ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
+    ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
+	ui->HardwareAccelerationComboBox->update();
 	ui->DropWidget->setVideoLowWindowPointer(this);
+    cutWindow = new VideoCutWindow(this);
 	connectSlots();
 	setWindowFlags(Qt::Window | Qt::MSWindowsFixedSizeDialogHint);
 	this->statusBar()->setSizeGripEnabled(false);
@@ -22,7 +27,9 @@ VideoLowWindow::VideoLowWindow(QWidget * parent)
 VideoLowWindow::~VideoLowWindow()
 {
 	delete ui;
-	delete currentFile;
+    if(currentVideo)
+        delete currentVideo;
+    delete cutWindow;
 }
 
 void VideoLowWindow::connectSlots()
@@ -38,50 +45,71 @@ void VideoLowWindow::connectSlots()
 	QObject::connect(ui->HEVC_16, &QPushButton::clicked, this, &VideoLowWindow::quickHEVC_16);
 
 	QObject::connect(ui->ExportButton, &QPushButton::clicked, this, &VideoLowWindow::exportVideo);
+
+    QObject::connect(ui->reviewVideoButton, &QPushButton::clicked, this, &VideoLowWindow::reviewVideo);
+    QObject::connect(cutWindow, &VideoCutWindow::newCutInformation, this, &VideoLowWindow::gotCutInformation);
+
+    QObject::connect(ui->startTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::startTimeEdited);
+    QObject::connect(ui->EndTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::endTimeEdited);
 }
 
 void VideoLowWindow::quickH264(double MBitRate)
 {
-	if (currentFile)
+    if (currentVideo)
 		handleExportExitCode(
 			ffmpeg.exportFile(
-				*currentFile,
-				MBitRate,
+                *currentVideo,
+                getTrimSettings(),
+                MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::H264],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
                 FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
-			)
+            ),
+            ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
 }
 
 void VideoLowWindow::quickHEVC(double MBitRate)
 {
-	if (currentFile) {
+    if (currentVideo) {
 		handleExportExitCode(
 			ffmpeg.exportFile(
-				*currentFile,
+                *currentVideo,
+                getTrimSettings(),
 				MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::HEVC],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
 				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
-			)
+            ),
+            ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
 
 	}
 }
 
-void VideoLowWindow::handleExportExitCode(bool success)
+void VideoLowWindow::handleExportExitCode(bool success, bool hardwareAcc)
 {
+	QString text("Error during last Export!");
+	if (hardwareAcc)
+		text += " Try updating your drivers or try different settings!";
 	if (!success) {
 		std::cout << "Error during export!" << std::endl;
-		ui->ErrorLabel->setText(tr("Error during last Export!"));
+		ui->ErrorLabel->setText(tr(text.toStdString().c_str()));
 	}
 	else {
 		std::cout << "Successful export!" << std::endl;
 		ui->ErrorLabel->clear();
-	}
+    }
+}
+
+TrimSettings VideoLowWindow::getTrimSettings()
+{
+    QTime start = ui->startTimeEdit->time();
+    QTime end = ui->EndTimeEdit->time();
+    bool trim = ui->trimVideoCheckBox->isChecked();
+    return TrimSettings {start, end, trim};
 }
 
 void VideoLowWindow::quickH264_2()
@@ -129,26 +157,75 @@ void VideoLowWindow::quickHEVC_16()
 void VideoLowWindow::exportVideo()
 {
 	std::cout << "export" << std::endl;
-	if (currentFile) {
+    if (currentVideo) {
 		handleExportExitCode(
 			ffmpeg.exportFile(
-				*currentFile,
+                *currentVideo,
+                getTrimSettings(),
 				ui->BitrateDoubleSpinBox->value(),
 				RESOLUTIONS[ui->ResolutionComboBox->currentIndex()],
 				CODECS[ui->CodecComboBox->currentIndex()],
 				ui->HardwareAccelerationComboBox->currentIndex(),
 				FRAMERATES[ui->FramerateComboBox->currentIndex()]
-			)
+            ),
+            ui->HardwareAccelerationComboBox->currentIndex() != 0
 		);
-	}
+    }
 }
 
-void VideoLowWindow::newVideoFile(QString filePath)
+void VideoLowWindow::reviewVideo()
 {
-	if (!currentFile) {
-		currentFile = new QString(filePath);
+    cutWindow->resetAll();
+    cutWindow->loadVideo(*this->currentVideo);
+	cutWindow->setInitialStartAndEnd(ui->startTimeEdit->time(), ui->EndTimeEdit->time());
+    cutWindow->show();
+}
+
+void VideoLowWindow::gotCutInformation(QTime start, QTime end, bool cancelled)
+{
+    if(!cancelled){
+        ui->startTimeEdit->setTime(start);
+        ui->EndTimeEdit->setTime(end);
+        ui->trimVideoCheckBox->setChecked(true);
+    }
+}
+
+void VideoLowWindow::startTimeEdited()
+{
+    QTime current = ui->startTimeEdit->time();
+    if (currentVideo) {
+        if (current > currentVideo->length)
+            current = currentVideo->length;
+    }
+    if (current > ui->EndTimeEdit->time())
+        ui->EndTimeEdit->setTime(current);
+    ui->startTimeEdit->setTime(current);
+}
+
+void VideoLowWindow::endTimeEdited()
+{
+    QTime current = ui->EndTimeEdit->time();
+    if (currentVideo) {
+        if (current > currentVideo->length)
+            current = currentVideo->length;
+    }
+    if (current < ui->startTimeEdit->time())
+        ui->startTimeEdit->setTime(current);
+    ui->EndTimeEdit->setTime(current);
+}
+
+void VideoLowWindow::newVideoFile(Video vid)
+{
+    if (!currentVideo) {
+        currentVideo = new Video(vid);
 	}
 	else
-		*currentFile = filePath;
+        *currentVideo = vid;
+    QTime zero(0,0);
+    ui->reviewVideoButton->setDisabled(false);
+    ui->trimVideoCheckBox->setChecked(false);
+    ui->startTimeEdit->setTime(zero);
+    ui->EndTimeEdit->setTime(vid.length);
+    ui->videoLengthTimeEdit->setTime(vid.length);
 }
 

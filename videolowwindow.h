@@ -2,7 +2,8 @@
 
 class QString;
 #include "ffmpegwrapper.h"
-
+#include "Structs.h"
+#include "VideoCutWindow/videocutwindow.h"
 #include <QMainWindow>
 
 
@@ -26,9 +27,13 @@ private slots:
     void quickHEVC_8();
     void quickHEVC_16();
     void exportVideo();
+    void reviewVideo();
+    void gotCutInformation(QTime start, QTime end, bool cancelled);
+    void startTimeEdited();
+    void endTimeEdited();
 
 public slots:
-    void newVideoFile(QString filePath);
+    void newVideoFile(Video vid);
 
 public:
     VideoLowWindow(QWidget *parent = nullptr);
@@ -38,11 +43,13 @@ public:
 private:
     void quickH264(double MBitRate);
     void quickHEVC(double MBitRate);
-    void handleExportExitCode(bool success);
+    void handleExportExitCode(bool success, bool hardwareAcc);
 
+    TrimSettings getTrimSettings();
     FFMPEGWrapper ffmpeg;
     Ui::VideoLowWindow *ui;
-    QString *currentFile = nullptr;
+    VideoCutWindow *cutWindow;
+    Video *currentVideo = nullptr;
 };
 
 

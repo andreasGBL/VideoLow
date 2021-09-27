@@ -1,6 +1,14 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 
-project(VideoLow LANGUAGES CXX)
+message(STATUS "project name: ${PROJECT_NAME}")
+
+if(NOT DEFINED PROJECT_NAME)
+    set(PROJECT_NAME "VideoLow")
+endif()
+
+message(STATUS "project name: ${PROJECT_NAME}")
+
+project(${PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -8,17 +16,17 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # QtCreator supports the following variables for Android, which are identical to qmake Android variables.
 # Check http://doc.qt.io/qt-5/deployment-android.html for more information.
 # They need to be set before the find_package(Qt5 ...) call.
 
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Multimedia MultimediaWidgets REQUIRED)
 
 
-  add_executable(VideoLow
+add_executable(${PROJECT_NAME}
     main.cpp
     videolowwindow.cpp
     videolowwindow.h
@@ -28,20 +36,43 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
     ffmpegwrapper.h
     ffmpegwrapper.cpp
     Structs.h
-  )
+    VideoCutWindow/videocutwindow.ui
+    VideoCutWindow/videocutwindow.h
+    VideoCutWindow/videocutwindow.cpp
+    VideoCutWindow/videoplayerwidget.h
+)
+if(NOT DEFINED HARDWARE_ACCELERATION_DEFAULT)
+    set(HARDWARE_ACCELERATION_DEFAULT 0)
+endif()
 
-target_link_libraries(VideoLow PRIVATE Qt5::Widgets Qt5::WinMain)
+if(NOT DEFINED WITH_CONSOLE)
+    set(WITH_CONSOLE FALSE)
+endif()
+
+if(WITH_CONSOLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE")
+else()
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+endif()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC HARDWARE_ACCELERATION_DEFAULT=${HARDWARE_ACCELERATION_DEFAULT})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets Qt5::Multimedia Qt5::MultimediaWidgets Qt5::WinMain)
 
 #deploy QT libraries
 get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
 get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
 
 find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
-add_custom_command(TARGET VideoLow POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E env PATH="${_qt_bin_dir}" "${WINDEPLOYQT_EXECUTABLE}" "$<TARGET_FILE:VideoLow>"
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E env PATH="${_qt_bin_dir}" "${WINDEPLOYQT_EXECUTABLE}" "$<TARGET_FILE:${PROJECT_NAME}>"
     COMMENT "Deploying Qt library files...")
 
 #copy ffmpeg
 configure_file("./ffmpeg.exe" "./ffmpeg.exe" COPYONLY)
 configure_file("./ffmpeg.exe" "./Release/ffmpeg.exe" COPYONLY)
 configure_file("./ffmpeg.exe" "./Debug/ffmpeg.exe" COPYONLY)
+
+configure_file("./ffprobe.exe" "./ffprobe.exe" COPYONLY)
+configure_file("./ffprobe.exe" "./Release/ffprobe.exe" COPYONLY)
+configure_file("./ffprobe.exe" "./Debug/ffprobe.exe" COPYONLY)

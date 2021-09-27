@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QLabel>
+#include <Structs.h>
 #include "videolowwindow.h"
 
 class QMimeData;
@@ -20,7 +21,7 @@ public slots:
     void clear();
 
 signals:
-    void newVideoFileDropped(const QString filePath);
+    void newVideoFileDropped(const Video filePath);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;

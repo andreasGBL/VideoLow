@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <QString>
+#include <QTime>
 
 struct Resolution {
 public:
@@ -9,10 +11,20 @@ public:
 };
 
 struct Codec {
-public:
     std::string defaultName;
     std::string NVIDIA;
     std::string AMD;
+};
+
+struct Video {
+    QString filePath;
+    QTime length;
+};
+
+struct TrimSettings {
+    QTime start;
+    QTime end;
+    bool trim = false;
 };
 
 enum RESOLUTION_IDX {
@@ -73,7 +85,7 @@ enum CODEC_IDX {
     HEVC = 1
 };
 
-Codec const CODECS[3] = {
+Codec const CODECS[2] = {
     {
         "libx264",
         "h264_nvenc",

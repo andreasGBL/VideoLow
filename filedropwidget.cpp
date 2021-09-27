@@ -3,8 +3,10 @@
 #include <QFrame>
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include <QRegularExpression>
 
 #include <iostream>
+#include <stdio.h>
 
 FileDropWidget::FileDropWidget(QWidget *parent) : QLabel(parent)
 {
@@ -62,7 +64,39 @@ void FileDropWidget::dropEvent(QDropEvent *event)
         QString path = mimeData->text().split("file:///")[1];
         std::cout<<"New File: "<<path.toStdString()<<std::endl;
         setText(tr(breakLines(path, 40).toStdString().c_str()));
-        emit newVideoFileDropped(path);
+        std::string cmd = "ffprobe.exe \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+        QString probe("");
+        int hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
+        {
+            FILE * f;
+            f = _popen(cmd.c_str(), "r");
+            char buff[128];
+            if(f){
+                while(fgets(buff, 128, f)){
+                    probe.append(buff);
+                }
+            }
+        }
+        std::cout<<"Probe:"<<probe.toStdString()<<std::endl;
+        QString pattern("Duration: \\d{2}:\\d{2}:\\d{2}.\\d{2}");
+        QRegularExpression regex(pattern);
+        
+        auto match = regex.match(probe);
+        if(match.hasMatch()){
+            QString res = match.captured(0);
+            std::cout<<res.toStdString()<<std::endl;
+            QString splitter("Duration: ");
+            QString time = res.split(splitter)[1];
+            auto timesplit = time.split(":");
+            hours =  timesplit[0].toInt();
+            minutes = timesplit[1].toInt();
+            seconds = static_cast<int>(timesplit[2].toDouble());
+            milliseconds = static_cast<int>((timesplit[2].toDouble() - static_cast<double>(seconds)) * 100.0) * 10;
+        }
+
+
+        Video vid = {path, QTime(hours, minutes, seconds, milliseconds)};
+        emit newVideoFileDropped(vid);
         hasDrop = true;
     }
 }
