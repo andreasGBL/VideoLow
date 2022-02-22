@@ -1,9 +1,9 @@
-#include "ffmpegwrapper.h"
+#include "../include/ffmpegwrapper.h"
 
 #include <QStringList>
 #include <QString>
 
-#include "Structs.h"
+#include "include/structs.h"
 
 #include <fstream>
 #include <string>
@@ -28,7 +28,7 @@ bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & setting
 	QString cmd = "ffmpeg -y ";
 	//options part 1
 	QString trimming = getTrimString(settings.start, settings.end, video);
-	
+
 	QString inputFile = getInputFileString(filePath);
 
 	//filters
@@ -37,7 +37,7 @@ bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & setting
 	QString scaleFilter = getScaleFilterString(res, HardwareAccelleration);
 
 	//options part2
-	QString audioCodec = getAudioCodecString(settings.start == QTime(0,0) || !settings.trim);
+	QString audioCodec = getAudioCodecString(settings.start == QTime(0, 0) || !settings.trim);
 	QString videoCodec = getVideoCodecString(codec, HardwareAccelleration);
 	QString bitrate = getMBitRateString(MBitRate);
 	QString outputFile = getOutputFileString(expFilePath);
@@ -197,7 +197,7 @@ QString FFMPEGWrapper::toDigits(int number, int digits)
 	int temp = 10;
 	QString string("");
 	for (int i = 0; i < digits - 1; i++) {
-		if(number < temp){
+		if (number < temp) {
 			string += "0";
 		}
 		temp *= 10;

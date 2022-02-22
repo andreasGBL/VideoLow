@@ -3,7 +3,7 @@
 #include <QString>
 
 
-#include "Structs.h"
+#include "include/structs.h"
 
 #include <iostream>
 
@@ -14,11 +14,13 @@ VideoLowWindow::VideoLowWindow(QWidget * parent)
 	, ui(new Ui::VideoLowWindow)
 {
 	ui->setupUi(this);
-    ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
-    ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
+	ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
+	ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationComboBox->update();
 	ui->DropWidget->setVideoLowWindowPointer(this);
-    cutWindow = new VideoCutWindow(this);
+	ui->DropWidget->setPreviewLabelPointer(ui->PreviewLabel);
+	ui->PreviewLabel->setDropWidgetPointer(ui->DropWidget);
+	cutWindow = new VideoCutWindow(this);
 	connectSlots();
 	setWindowFlags(Qt::Window | Qt::MSWindowsFixedSizeDialogHint);
 	this->statusBar()->setSizeGripEnabled(false);
@@ -27,9 +29,9 @@ VideoLowWindow::VideoLowWindow(QWidget * parent)
 VideoLowWindow::~VideoLowWindow()
 {
 	delete ui;
-    if(currentVideo)
-        delete currentVideo;
-    delete cutWindow;
+	if (currentVideo)
+		delete currentVideo;
+	delete cutWindow;
 }
 
 void VideoLowWindow::connectSlots()
@@ -46,44 +48,44 @@ void VideoLowWindow::connectSlots()
 
 	QObject::connect(ui->ExportButton, &QPushButton::clicked, this, &VideoLowWindow::exportVideo);
 
-    QObject::connect(ui->reviewVideoButton, &QPushButton::clicked, this, &VideoLowWindow::reviewVideo);
-    QObject::connect(cutWindow, &VideoCutWindow::newCutInformation, this, &VideoLowWindow::gotCutInformation);
+	QObject::connect(ui->reviewVideoButton, &QPushButton::clicked, this, &VideoLowWindow::reviewVideo);
+	QObject::connect(cutWindow, &VideoCutWindow::newCutInformation, this, &VideoLowWindow::gotCutInformation);
 
-    QObject::connect(ui->startTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::startTimeEdited);
-    QObject::connect(ui->EndTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::endTimeEdited);
+	QObject::connect(ui->startTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::startTimeEdited);
+	QObject::connect(ui->EndTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::endTimeEdited);
 }
 
 void VideoLowWindow::quickH264(double MBitRate)
 {
-    if (currentVideo)
+	if (currentVideo)
 		handleExportExitCode(
 			ffmpeg.exportFile(
-                *currentVideo,
-                getTrimSettings(),
-                MBitRate,
+				*currentVideo,
+				getTrimSettings(),
+				MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::H264],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
-                FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
-            ),
-            ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
+				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
+			),
+			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
 }
 
 void VideoLowWindow::quickHEVC(double MBitRate)
 {
-    if (currentVideo) {
+	if (currentVideo) {
 		handleExportExitCode(
 			ffmpeg.exportFile(
-                *currentVideo,
-                getTrimSettings(),
+				*currentVideo,
+				getTrimSettings(),
 				MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::HEVC],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
 				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
-            ),
-            ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
+			),
+			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
 
 	}
@@ -101,15 +103,15 @@ void VideoLowWindow::handleExportExitCode(bool success, bool hardwareAcc)
 	else {
 		std::cout << "Successful export!" << std::endl;
 		ui->ErrorLabel->clear();
-    }
+	}
 }
 
 TrimSettings VideoLowWindow::getTrimSettings()
 {
-    QTime start = ui->startTimeEdit->time();
-    QTime end = ui->EndTimeEdit->time();
-    bool trim = ui->trimVideoCheckBox->isChecked();
-    return TrimSettings {start, end, trim};
+	QTime start = ui->startTimeEdit->time();
+	QTime end = ui->EndTimeEdit->time();
+	bool trim = ui->trimVideoCheckBox->isChecked();
+	return TrimSettings{ start, end, trim };
 }
 
 void VideoLowWindow::quickH264_2()
@@ -157,75 +159,75 @@ void VideoLowWindow::quickHEVC_16()
 void VideoLowWindow::exportVideo()
 {
 	std::cout << "export" << std::endl;
-    if (currentVideo) {
+	if (currentVideo) {
 		handleExportExitCode(
 			ffmpeg.exportFile(
-                *currentVideo,
-                getTrimSettings(),
+				*currentVideo,
+				getTrimSettings(),
 				ui->BitrateDoubleSpinBox->value(),
 				RESOLUTIONS[ui->ResolutionComboBox->currentIndex()],
 				CODECS[ui->CodecComboBox->currentIndex()],
 				ui->HardwareAccelerationComboBox->currentIndex(),
 				FRAMERATES[ui->FramerateComboBox->currentIndex()]
-            ),
-            ui->HardwareAccelerationComboBox->currentIndex() != 0
+			),
+			ui->HardwareAccelerationComboBox->currentIndex() != 0
 		);
-    }
+	}
 }
 
 void VideoLowWindow::reviewVideo()
 {
-    cutWindow->resetAll();
-    cutWindow->loadVideo(*this->currentVideo);
+	cutWindow->resetAll();
+	cutWindow->loadVideo(*this->currentVideo);
 	cutWindow->setInitialStartAndEnd(ui->startTimeEdit->time(), ui->EndTimeEdit->time());
-    cutWindow->show();
+	cutWindow->show();
 }
 
 void VideoLowWindow::gotCutInformation(QTime start, QTime end, bool cancelled)
 {
-    if(!cancelled){
-        ui->startTimeEdit->setTime(start);
-        ui->EndTimeEdit->setTime(end);
-        ui->trimVideoCheckBox->setChecked(true);
-    }
+	if (!cancelled) {
+		ui->startTimeEdit->setTime(start);
+		ui->EndTimeEdit->setTime(end);
+		ui->trimVideoCheckBox->setChecked(true);
+	}
 }
 
 void VideoLowWindow::startTimeEdited()
 {
-    QTime current = ui->startTimeEdit->time();
-    if (currentVideo) {
-        if (current > currentVideo->length)
-            current = currentVideo->length;
-    }
-    if (current > ui->EndTimeEdit->time())
-        ui->EndTimeEdit->setTime(current);
-    ui->startTimeEdit->setTime(current);
+	QTime current = ui->startTimeEdit->time();
+	if (currentVideo) {
+		if (current > currentVideo->length)
+			current = currentVideo->length;
+	}
+	if (current > ui->EndTimeEdit->time())
+		ui->EndTimeEdit->setTime(current);
+	ui->startTimeEdit->setTime(current);
 }
 
 void VideoLowWindow::endTimeEdited()
 {
-    QTime current = ui->EndTimeEdit->time();
-    if (currentVideo) {
-        if (current > currentVideo->length)
-            current = currentVideo->length;
-    }
-    if (current < ui->startTimeEdit->time())
-        ui->startTimeEdit->setTime(current);
-    ui->EndTimeEdit->setTime(current);
+	QTime current = ui->EndTimeEdit->time();
+	if (currentVideo) {
+		if (current > currentVideo->length)
+			current = currentVideo->length;
+	}
+	if (current < ui->startTimeEdit->time())
+		ui->startTimeEdit->setTime(current);
+	ui->EndTimeEdit->setTime(current);
 }
 
 void VideoLowWindow::newVideoFile(Video vid)
 {
-    if (!currentVideo) {
-        currentVideo = new Video(vid);
+	if (!currentVideo) {
+		currentVideo = new Video(vid);
 	}
 	else
-        *currentVideo = vid;
-    QTime zero(0,0);
-    ui->reviewVideoButton->setDisabled(false);
-    ui->trimVideoCheckBox->setChecked(false);
-    ui->startTimeEdit->setTime(zero);
-    ui->EndTimeEdit->setTime(vid.length);
-    ui->videoLengthTimeEdit->setTime(vid.length);
+		*currentVideo = vid;
+	QTime zero(0, 0);
+	ui->reviewVideoButton->setDisabled(false);
+	ui->trimVideoCheckBox->setChecked(false);
+	ui->startTimeEdit->setTime(zero);
+	ui->EndTimeEdit->setTime(vid.length);
+	ui->videoLengthTimeEdit->setTime(vid.length);
 }
 

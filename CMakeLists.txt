@@ -19,28 +19,25 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# QtCreator supports the following variables for Android, which are identical to qmake Android variables.
-# Check http://doc.qt.io/qt-5/deployment-android.html for more information.
-# They need to be set before the find_package(Qt5 ...) call.
-
 find_package(Qt5 COMPONENTS Widgets Multimedia MultimediaWidgets REQUIRED)
 
-
 add_executable(${PROJECT_NAME}
-    main.cpp
-    videolowwindow.cpp
-    videolowwindow.h
-    videolowwindow.ui
-    filedropwidget.h
-    filedropwidget.cpp
-    ffmpegwrapper.h
-    ffmpegwrapper.cpp
-    Structs.h
-    VideoCutWindow/videocutwindow.ui
-    VideoCutWindow/videocutwindow.h
-    VideoCutWindow/videocutwindow.cpp
-    VideoCutWindow/videoplayerwidget.h
+    include/videolowwindow.h
+    include/filedropwidget.h
+    include/filepreviewwidget.h
+    include/ffmpegwrapper.h
+    include/structs.h
+    include/VideoCutWindow/videocutwindow.h
+    include/VideoCutWindow/videoplayerwidget.h
+    src/main.cpp
+    src/filedropwidget.cpp
+    src/ffmpegwrapper.cpp
+    src/videolowwindow.cpp
+    src/VideoCutWindow/videocutwindow.cpp
+    src/videolowwindow.ui
+    src/VideoCutWindow/videocutwindow.ui
 )
+
 if(NOT DEFINED HARDWARE_ACCELERATION_DEFAULT)
     set(HARDWARE_ACCELERATION_DEFAULT 0)
 endif()
