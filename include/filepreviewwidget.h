@@ -45,6 +45,5 @@ protected:
 
 private:
 	FileDropWidget * dropWidget = nullptr;
-	void connectSlots();
 };
 

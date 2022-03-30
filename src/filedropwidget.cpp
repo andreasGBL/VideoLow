@@ -72,7 +72,7 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		std::string cmd = "ffprobe.exe \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString probe("");
 		int hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
-		auto probeCall = std::async(std::launch::async, [&] {
+		{
 			{
 				FILE * f;
 				f = _popen(cmd.c_str(), "r");
@@ -99,12 +99,16 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 				seconds = static_cast<int>(timesplit[2].toDouble());
 				milliseconds = static_cast<int>((timesplit[2].toDouble() - static_cast<double>(seconds)) * 100.0) * 10;
 			}
-        });
+        }
+		QTime vidLength(hours, minutes, seconds, milliseconds); //TODO: do probing and thumbnail at 3 seconds in parallel (async) and redo thumbnail in rare case of a video that is shorter than 3 seconds
+		int msecsMid = vidLength.msecsSinceStartOfDay() / 2;
+		QTime thumbnailTime = QTime::fromMSecsSinceStartOfDay(msecsMid > 3000 ? 3000 : msecsMid); //prefer a thumbnail at 3 seconds or at videoLength / 2, if video is shorter
         QString tempFolder("VideoLow.tmp");
-        QDir::temp().mkdir(tempFolder);
+        QDir::temp().mkdir(tempFolder); //create temporary folder for thumbnail
         QString thumbnail = QDir::tempPath()+QString("/"+tempFolder+"/thumb.jpg");
+		QString format("hh:mm:ss.zzz");
 
-		cmd = "ffmpeg -y -i \"" + path.toStdString() + "\" -ss 00:00:00.000 -vf \"scale=600:600:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+		cmd = "ffmpeg -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=600:600:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString thumb;
 		{
 			FILE * f;
@@ -118,9 +122,9 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		}
 		//        std::cout<<cmd <<"\n--------\n"<<thumb.toStdString()<<std::endl;
 		QPixmap m(thumbnail);
-		previewLabel->setPixmap(m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio));
-		probeCall.wait();
-		Video vid = { path, QTime(hours, minutes, seconds, milliseconds) };
+		auto scaled = m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio);
+		previewLabel->setPixmap(scaled);
+		Video vid = { path,  vidLength};
 		emit newVideoFileDropped(vid);
 		hasDrop = true;
 	}
