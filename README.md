@@ -27,7 +27,7 @@ The GUI is made with [QT 5](https://github.com/qt/qt5).
 
 # Build
 
-- required CMake
+- requires CMake
 - requires QT 5
 - requires Visual Studio as Compiler
 
@@ -78,3 +78,6 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 - videos with special characters in the file name aren't supported
 - qt can't handle every video in the built-in video player
 - when the hardware accelerated codecs fail, try updating your drivers - if that doesn't work try different parameters and maybe try to change some parameters back to "As Input"
+
+# License
+This open source software is licensed under [GPLv3](LICENSE).
