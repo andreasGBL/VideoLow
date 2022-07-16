@@ -7,23 +7,28 @@ on:
     branches: [ "main" ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
-  init:
+      
+  build_standard:
     runs-on: windows-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    
-    - name: Install QT
-      uses: jurplel/install-qt-action@v2.14.0
       
-  build_standard:
-    runs-on: windows-latest
-    needs: init
-    steps:
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1  # not v2!
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+      
     - name: Configure Standard
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow" -DHARDWARE_ACCELERATION_DEFAULT=0 -DWITH_CONSOLE=0
 
@@ -32,8 +37,22 @@ jobs:
       
   build_nvidia:
     runs-on: windows-latest
-    needs: init
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1  # not v2!
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+      
     - name: Configure Nvidia
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_Nvidia" -DHARDWARE_ACCELERATION_DEFAULT=1 -DWITH_CONSOLE=0
 
@@ -42,8 +61,22 @@ jobs:
       
   build_amd:
     runs-on: windows-latest
-    needs: init
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1  # not v2!
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}      
+      
     - name: Configure AMD
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_AMD" -DHARDWARE_ACCELERATION_DEFAULT=2 -DWITH_CONSOLE=0
 
@@ -52,8 +85,22 @@ jobs:
       
   build_debug:
     runs-on: windows-latest
-    needs: init
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1  # not v2!
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+      
     - name: Configure DBEUG
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_DEBUG" -DHARDWARE_ACCELERATION_DEFAULT=0 -DWITH_CONSOLE=1
 
