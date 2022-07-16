@@ -72,9 +72,11 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		std::string cmd = "ffprobe.exe \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString probe("");
 		int hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
+		Resolution resolution = {0, 0};
+		double framerate = 0;
 		{
 			{
-				FILE * f;
+				FILE* f;
 				f = _popen(cmd.c_str(), "r");
 				char buff[128];
 				if (f) {
@@ -83,7 +85,7 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 					}
 				}
 			}
-			//            std::cout<<"Probe:"<<probe.toStdString()<<std::endl;
+			//std::cout << "Probe:" << probe.toStdString() << std::endl;
 			QString pattern("Duration: \\d{2}:\\d{2}:\\d{2}.\\d{2}");
 			QRegularExpression regex(pattern);
 
@@ -99,8 +101,46 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 				seconds = static_cast<int>(timesplit[2].toDouble());
 				milliseconds = static_cast<int>((timesplit[2].toDouble() - static_cast<double>(seconds)) * 100.0) * 10;
 			}
-        }
-		QTime vidLength(hours, minutes, seconds, milliseconds); //TODO: do probing and thumbnail at 3 seconds in parallel (async) and redo thumbnail in rare case of a video that is shorter than 3 seconds
+
+			QString pattern2("(\\d{1,3}.\\d{2}|\\d{1,3}) fps");
+			regex = QRegularExpression(pattern2);
+			bool ok = true;
+
+			match = regex.match(probe);
+			if (match.hasMatch()) {
+				QString res = match.captured(0);
+				QString splitter(" fps");
+				QString fps = res.split(splitter)[0];
+				double frate = fps.trimmed().toDouble(&ok);
+				if (ok)
+					framerate = frate;
+				std::cout << "fps: "<<framerate << std::endl;
+
+			}
+
+			QString pattern3(", \\d{2,5}x\\d{2,5}(,| \\[)");
+			regex = QRegularExpression(pattern3);
+			match = regex.match(probe);
+			if (match.hasMatch()) {
+				QString res = match.captured(0);
+				QString splitter(",");
+				QString splitter2(" [");
+				QString splitter3("x");
+				QString res12 = res.split(splitter)[1].trimmed();
+				QString res2 = res12.split(splitter2)[0];
+				QString width = res2.split(splitter3)[0];
+				QString height = res2.split(splitter3)[1];
+				int w = width.toInt(&ok);
+				if (ok)
+					resolution.width = w;
+				int h = height.toInt(&ok);
+				if (ok)
+					resolution.height = h;
+				std::cout << "width: "<<resolution.width << " height: " << resolution.height << std::endl;
+			}
+
+		}
+		QTime vidLength(hours, minutes, seconds, milliseconds); 
 		int msecsMid = vidLength.msecsSinceStartOfDay() / 2;
 		QTime thumbnailTime = QTime::fromMSecsSinceStartOfDay(msecsMid > 3000 ? 3000 : msecsMid); //prefer a thumbnail at 3 seconds or at videoLength / 2, if video is shorter
         QString tempFolder("VideoLow.tmp");
@@ -108,7 +148,7 @@ void FileDropWidget::dropEvent(QDropEvent * event)
         QString thumbnail = QDir::tempPath()+QString("/"+tempFolder+"/thumb.jpg");
 		QString format("hh:mm:ss.zzz");
 
-		cmd = "ffmpeg -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=600:600:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+		cmd = "ffmpeg -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=1000:1000:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString thumb;
 		{
 			FILE * f;
@@ -124,7 +164,7 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		QPixmap m(thumbnail);
 		auto scaled = m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio);
 		previewLabel->setPixmap(scaled);
-		Video vid = { path,  vidLength};
+		Video vid = { path,  vidLength, resolution, framerate};
 		emit newVideoFileDropped(vid);
 		hasDrop = true;
 	}

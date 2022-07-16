@@ -28,6 +28,7 @@ private slots:
 	void quickHEVC_16();
 	void exportVideo();
 	void reviewVideo();
+	void quickTrimOnly();
 	void gotCutInformation(QTime start, QTime end, bool cancelled);
 	void startTimeEdited();
 	void endTimeEdited();

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>777</width>
-    <height>642</height>
+    <width>776</width>
+    <height>655</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,6 +20,12 @@
    <string>VideoLow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
@@ -506,6 +512,13 @@
           </layout>
          </item>
          <item>
+          <widget class="QPushButton" name="trimVideoButton">
+           <property name="text">
+            <string>Only Trim Video</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="ErrorLabel">
            <property name="palette">
             <palette>
@@ -731,8 +744,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>777</width>
-     <height>22</height>
+     <width>776</width>
+     <height>17</height>
     </rect>
    </property>
   </widget>

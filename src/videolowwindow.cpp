@@ -2,7 +2,6 @@
 #include <QMainWindow>
 #include <QString>
 
-
 #include "include/structs.h"
 
 #include <iostream>
@@ -13,7 +12,9 @@ VideoLowWindow::VideoLowWindow(QWidget * parent)
 	, ffmpeg()
 	, ui(new Ui::VideoLowWindow)
 {
+	
 	ui->setupUi(this);
+	ui->centralwidget->resize(width() - 10, height() - 10);
 	ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationComboBox->update();
@@ -36,6 +37,7 @@ VideoLowWindow::~VideoLowWindow()
 
 void VideoLowWindow::connectSlots()
 {
+	QObject::connect(ui->trimVideoButton, &QPushButton::clicked, this, &VideoLowWindow::quickTrimOnly);
 	QObject::connect(ui->H264_2, &QPushButton::clicked, this, &VideoLowWindow::quickH264_2);
 	QObject::connect(ui->H264_4, &QPushButton::clicked, this, &VideoLowWindow::quickH264_4);
 	QObject::connect(ui->H264_8, &QPushButton::clicked, this, &VideoLowWindow::quickH264_8);
@@ -66,7 +68,8 @@ void VideoLowWindow::quickH264(double MBitRate)
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::H264],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
-				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
+				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+				false
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
@@ -83,7 +86,8 @@ void VideoLowWindow::quickHEVC(double MBitRate)
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				CODECS[CODEC_IDX::HEVC],
 				ui->HardwareAccelerationQuickComboBox->currentIndex(),
-				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()]
+				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+				false
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
@@ -168,7 +172,8 @@ void VideoLowWindow::exportVideo()
 				RESOLUTIONS[ui->ResolutionComboBox->currentIndex()],
 				CODECS[ui->CodecComboBox->currentIndex()],
 				ui->HardwareAccelerationComboBox->currentIndex(),
-				FRAMERATES[ui->FramerateComboBox->currentIndex()]
+				FRAMERATES[ui->FramerateComboBox->currentIndex()],
+				false
 			),
 			ui->HardwareAccelerationComboBox->currentIndex() != 0
 		);
@@ -181,6 +186,26 @@ void VideoLowWindow::reviewVideo()
 	cutWindow->loadVideo(*this->currentVideo);
 	cutWindow->setInitialStartAndEnd(ui->startTimeEdit->time(), ui->EndTimeEdit->time());
 	cutWindow->show();
+}
+
+void VideoLowWindow::quickTrimOnly()
+{
+	if (currentVideo) {
+		handleExportExitCode(
+			ffmpeg.exportFile(
+				*currentVideo,
+				getTrimSettings(),
+				ui->BitrateDoubleSpinBox->value(),
+				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
+				CODECS[CODEC_IDX::H264],
+				ui->HardwareAccelerationQuickComboBox->currentIndex(),
+				FRAMERATES[0],
+				true
+			),
+			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
+		);
+
+	}
 }
 
 void VideoLowWindow::gotCutInformation(QTime start, QTime end, bool cancelled)

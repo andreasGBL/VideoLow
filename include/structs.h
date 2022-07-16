@@ -19,6 +19,8 @@ struct Codec {
 struct Video {
 	QString filePath;
 	QTime length;
+	Resolution resolution;
+	double framerate;
 };
 
 struct TrimSettings {
@@ -28,11 +30,13 @@ struct TrimSettings {
 };
 
 enum RESOLUTION_IDX {
-	RESOLUTION_AS_INPUT = 0,
-	K4 = 1,
-	p1080 = 2,
-	p720 = 3,
-	p480 = 4
+	RESOLUTION_AS_INPUT,
+	K4,
+	p1440,
+	p1080,
+	p720,
+	p480,
+	p240
 };
 
 enum HARDWARE_ACCELERATION {
@@ -72,7 +76,7 @@ Resolution const RESOLUTIONS[7] = {
 	}
 };
 
-int const FRAMERATES[5] = {
+float const FRAMERATES[5] = {
 	0,
 	30,
 	60,

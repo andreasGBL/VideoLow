@@ -20,7 +20,7 @@ FFMPEGWrapper::FFMPEGWrapper()
 	}
 }
 
-bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & settings, double MBitRate, const Resolution & res, const Codec & codec, int HardwareAccelleration, int Framerate)
+bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & settings, double MBitRate, const Resolution & res, const Codec & codec, int HardwareAccelleration, int Framerate, bool trimOnly)
 {
 	const QString & filePath = video.filePath;
 	QString expFilePath = getExportFilePath(filePath);
@@ -33,12 +33,12 @@ bool FFMPEGWrapper::exportFile(const Video & video, const TrimSettings & setting
 
 	//filters
 	std::vector<QString> filters;
-	QString framerateFilter = getFramerateFilter(Framerate);
-	QString scaleFilter = getScaleFilterString(res, HardwareAccelleration);
+	QString framerateFilter = getFramerateFilter(Framerate, video.framerate);
+	QString scaleFilter = getScaleFilterString(res, video.resolution, HardwareAccelleration);
 
 	//options part2
-	QString audioCodec = getAudioCodecString(settings.start == QTime(0, 0) || !settings.trim);
-	QString videoCodec = getVideoCodecString(codec, HardwareAccelleration);
+	QString audioCodec = getAudioCodecString(settings.start == QTime(0, 0) || !settings.trim || trimOnly);
+	QString videoCodec = getVideoCodecString(codec, HardwareAccelleration, trimOnly);
 	QString bitrate = getMBitRateString(MBitRate);
 	QString outputFile = getOutputFileString(expFilePath);
 
@@ -118,17 +118,17 @@ QString FFMPEGWrapper::getMBitRateString(double MBitRate)
 	return "-b:v " + QString::number(MBitRate) + "M";
 }
 
-QString FFMPEGWrapper::getFramerateFilter(int Framerate)
+QString FFMPEGWrapper::getFramerateFilter(double Framerate, double vidFramerate)
 {
-	if (Framerate <= 0)
+	if (Framerate <= 0. || Framerate == vidFramerate)
 		return QString("");
 	else
 		return QString("fps=fps=") + QString::number(Framerate);
 }
 
-QString FFMPEGWrapper::getScaleFilterString(Resolution const & res, int HardwareAcceleration)
+QString FFMPEGWrapper::getScaleFilterString(Resolution const & res, Resolution const& vidRes, int HardwareAcceleration)
 {
-	if (res.height <= 0 && res.width <= 0) {
+	if (res.height <= 0 && res.width <= 0 || (res.height == vidRes.height && res.width == vidRes.width)) {
 		return QString("");
 	}
 	QString resolutionString = QString::number(res.width) + ":" + QString::number(res.height);
@@ -141,17 +141,22 @@ QString FFMPEGWrapper::getScaleFilterString(Resolution const & res, int Hardware
 	}
 }
 
-QString FFMPEGWrapper::getVideoCodecString(Codec const & codec, int HardwareAcceleration)
+QString FFMPEGWrapper::getVideoCodecString(Codec const & codec, int HardwareAcceleration, bool trimOnly)
 {
 	QString prefix = "-c:v ";
-	switch (HardwareAcceleration)
-	{
-	case(HARDWARE_ACCELERATION::NVIDIA):
-		return prefix + codec.NVIDIA.c_str();
-	case(HARDWARE_ACCELERATION::AMD):
-		return prefix + codec.AMD.c_str();
-	default:
-		return prefix + codec.defaultName.c_str();
+	if (trimOnly) {
+		return prefix + "copy";
+	}
+	else {
+		switch (HardwareAcceleration)
+		{
+		case(HARDWARE_ACCELERATION::NVIDIA):
+			return prefix + codec.NVIDIA.c_str();
+		case(HARDWARE_ACCELERATION::AMD):
+			return prefix + codec.AMD.c_str();
+		default:
+			return prefix + codec.defaultName.c_str();
+		}
 	}
 }
 
