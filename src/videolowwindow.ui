@@ -646,7 +646,7 @@
        <item>
         <widget class="QLabel" name="label_9">
          <property name="text">
-          <string>Videolänge:</string>
+          <string>Video length:</string>
          </property>
         </widget>
        </item>
