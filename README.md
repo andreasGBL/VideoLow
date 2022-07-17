@@ -73,11 +73,12 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 - notice: The hardware acceleration and output framerate below Quick Export Options apply, the output resolution is equal to the input resolution
 - Your file will be right next to your input video, but with the ending "Export.mp4"
 
-# Known problems
+# Known problems / limitations
 - no linux support
 - videos with special characters in the file name aren't supported
 - qt can't handle every video in the built-in video player
 - when the hardware accelerated codecs fail, try updating your drivers - if that doesn't work try different parameters and maybe try to change some parameters back to "As Input"
+- A maximum video length of 23:59:59.999 (up to 24 hours of video) is supported
 
 # License
 This open source software is licensed under [GPLv3](LICENSE).
