@@ -1,6 +1,6 @@
 # VideoLow
-VideoLow is a lightweight, free tool for Windows based on [ffmpeg](https://github.com/FFmpeg/FFmpeg) that allows you to compress, reencode and trim mp4 videos easily.
-This is the perfect tool if you want to create a clip from a video to send your friends. 
+VideoLow is a lightweight, free tool for Windows based on [ffmpeg](https://github.com/FFmpeg/FFmpeg) that allows you to compress, transcode and trim /clip mp4 videos easily.
+This is the perfect tool if you want to create a clip from a video to send to your friends. 
 Avoid large file sizes by selecting a smaller bitrate and speed up the process by utilizing your GPU.
 
 
@@ -46,7 +46,7 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 - Choose "Only Trim Video" to export the Clip without reencoding the Clip (very fast) or export the clip with the Export configuration or use a quick export option (slower, but more customizable)
 - Your file will be right next to your input video, but with the ending "Export.mp4"
 
-## Reencode a Video
+## Transcode a Video
 - Import video per drag & drop
 - Select bitrate (notice: a bitrate higher than the original video will not improve the quality)
 - Select codec (H.264 by default)
