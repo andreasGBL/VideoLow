@@ -1,10 +1,11 @@
 #pragma once
 
 #include <QLabel>
-#include "structs.h"
-#include "videolowwindow.h"
+class VideoLowWindow;
 
+struct Video;
 
+class QString;
 class QMimeData;
 
 namespace acceptedFileTypes {
@@ -17,7 +18,6 @@ class FileDropWidget : public QLabel
 	Q_OBJECT
 public:
 	explicit FileDropWidget(QWidget * parent = nullptr);
-	void setVideoLowWindowPointer(VideoLowWindow const * vlw);
 	void setPreviewLabelPointer(QLabel * preview)
 	{
 		previewLabel = preview;
@@ -30,7 +30,7 @@ public slots:
 	void clear();
 
 signals:
-	void newVideoFileDropped(const Video filePath);
+	void newVideoFileDropped(Video const & video);
 
 protected:
 	void dragEnterEvent(QDragEnterEvent * event) override;
@@ -43,9 +43,9 @@ protected:
 private:
 	bool hasDrop = false;
 
+	QString extractParameter(QString const& input, QString parameter);
+	QString extractParameterRegex(QString const& input, QString pattern);
 	QString breakLines(QString str, int maxChars);
-	VideoLowWindow const * videoLowWindow;
 	QLabel * previewLabel;
-	void connectSlots();
 };
 

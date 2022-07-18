@@ -1,8 +1,10 @@
 #include "include/VideoCutWindow/videocutwindow.h"
 #include "./ui_videocutwindow.h"
+
+#include <include/structs.h>
+
 #include <QPushButton>
 #include <QTimeEdit>
-#include <QTime>
 #include <QCloseEvent>
 #include <QMediaPlayer>
 

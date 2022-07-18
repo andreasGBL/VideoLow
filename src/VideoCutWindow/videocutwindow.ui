@@ -149,6 +149,13 @@
        </spacer>
       </item>
       <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Trim Settings:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="StartButton">
         <property name="text">
          <string>Set Start</string>
@@ -194,6 +201,13 @@
        <widget class="QPushButton" name="EndButton">
         <property name="text">
          <string>Set End</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>                    </string>
         </property>
        </widget>
       </item>

@@ -1,16 +1,21 @@
 #pragma once
 
+
+class FFMPEGWrapper;
+class VideoCutWindow;
+
+struct CodecConfig;
+struct TrimSettings;
+struct Video;
+
+class QTime;
 class QString;
-#include "ffmpegwrapper.h"
-#include "structs.h"
-#include "VideoCutWindow/videocutwindow.h"
 #include <QMainWindow>
 
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class VideoLowWindow; }
 QT_END_NAMESPACE
-
 
 
 class VideoLowWindow : public QMainWindow
@@ -29,12 +34,13 @@ private slots:
 	void exportVideo();
 	void reviewVideo();
 	void quickTrimOnly();
+	void codecConfigChanged(int);
 	void gotCutInformation(QTime start, QTime end, bool cancelled);
 	void startTimeEdited();
 	void endTimeEdited();
 
 public slots:
-	void newVideoFile(Video vid);
+	void newVideoFile(Video const & vid);
 
 public:
 	VideoLowWindow(QWidget * parent = nullptr);
@@ -42,14 +48,15 @@ public:
 	void connectSlots();
 
 private:
+	CodecConfig getCodecConfig();
 	void quickH264(double MBitRate);
 	void quickHEVC(double MBitRate);
 	void handleExportExitCode(bool success, bool hardwareAcc);
 
 	TrimSettings getTrimSettings();
-	FFMPEGWrapper ffmpeg;
-	Ui::VideoLowWindow * ui;
-	VideoCutWindow * cutWindow;
+	FFMPEGWrapper *ffmpeg = nullptr;
+	Ui::VideoLowWindow * ui = nullptr;
+	VideoCutWindow * cutWindow = nullptr;
 	Video * currentVideo = nullptr;
 };
 

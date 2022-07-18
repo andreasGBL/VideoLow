@@ -1,9 +1,10 @@
-#ifndef VIDEOCUTWINDOW_H
-#define VIDEOCUTWINDOW_H
+#pragma once
 
 #include <QWidget>
-#include "include/structs.h"
+#include <QTime>
+
 class QMediaPlayer;
+struct Video;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class VideoCutWindow; }
@@ -67,4 +68,3 @@ private:
 	const int videoSliderMax = 1000;
 	bool wasPlayingBeforeSliderWasPressed = false;
 };
-#endif // VIDEOCUTWINDOW_H
