@@ -1,14 +1,16 @@
 #include "include/filedropwidget.h"
 
+#include <include/structs.h>
+
 #include <QFrame>
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QRegularExpression>
 #include <QDir>
 
+
 #include <iostream>
-#include <stdio.h>
-#include <future>
+#include <cstdio>
 
 FileDropWidget::FileDropWidget(QWidget * parent) : QLabel(parent)
 {
@@ -20,17 +22,6 @@ FileDropWidget::FileDropWidget(QWidget * parent) : QLabel(parent)
 }
 
 
-
-void FileDropWidget::setVideoLowWindowPointer(const VideoLowWindow * vlw)
-{
-	videoLowWindow = vlw;
-	connectSlots();
-}
-
-void FileDropWidget::connectSlots()
-{
-	QObject::connect(this, &FileDropWidget::newVideoFileDropped, videoLowWindow, &VideoLowWindow::newVideoFile);
-}
 
 void FileDropWidget::clear()
 {
@@ -69,11 +60,13 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		QString path = mimeData->text().split("file:///")[1];
 		std::cout << "New File: " << path.toStdString() << std::endl;
 		setText(tr(breakLines(path, 40).toStdString().c_str()));
-		std::string cmd = "ffprobe.exe \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+		std::string cmd = "ffprobe.exe -hide_banner -select_streams v:0 -show_streams -v error -i \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString probe("");
-		int hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
 		Resolution resolution = {0, 0};
-		double framerate = 0;
+		double framerate = 0.;
+		QTime vidLength;
+		double bitrate = 0.;
+		CodecConfig codec;
 		{
 			{
 				FILE* f;
@@ -85,62 +78,59 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 					}
 				}
 			}
+			probe += "\n";
 			//std::cout << "Probe:" << probe.toStdString() << std::endl;
-			QString pattern("Duration: \\d{2}:\\d{2}:\\d{2}.\\d{2}");
-			QRegularExpression regex(pattern);
-
-			auto match = regex.match(probe);
-			if (match.hasMatch()) {
-				QString res = match.captured(0);
-				std::cout << res.toStdString() << std::endl;
-				QString splitter("Duration: ");
-				QString time = res.split(splitter)[1];
-				auto timesplit = time.split(":");
-				hours = timesplit[0].toInt();
-				minutes = timesplit[1].toInt();
-				seconds = static_cast<int>(timesplit[2].toDouble());
-				milliseconds = static_cast<int>((timesplit[2].toDouble() - static_cast<double>(seconds)) * 100.0) * 10;
+			const int num_param = 7;
+			QString parameters[num_param] = { "codec_name", "width", "height", "profile", "r_frame_rate", "duration", "bit_rate" };
+			std::vector<QString> results;
+			for (QString const& param : parameters) {
+				results.push_back(extractParameter(probe, param));
 			}
-
-			QString pattern2("(\\d{1,3}.\\d{2}|\\d{1,3}) fps");
-			regex = QRegularExpression(pattern2);
+			if (results[0].compare("h264", Qt::CaseInsensitive) == 0)
+				codec = DefaultCodecs[CODEC_IDX::H264][HARDWARE_ACCELERATION::NONE];
+			else if (results[0].compare("hevc", Qt::CaseInsensitive) == 0)
+				codec = DefaultCodecs[CODEC_IDX::HEVC][HARDWARE_ACCELERATION::NONE];
+			else {
+				codec.id = CODEC_IDX::UNSUPPORTED;
+				codec.name = "Unsupported";
+			}
 			bool ok = true;
-
-			match = regex.match(probe);
-			if (match.hasMatch()) {
-				QString res = match.captured(0);
-				QString splitter(" fps");
-				QString fps = res.split(splitter)[0];
-				double frate = fps.trimmed().toDouble(&ok);
-				if (ok)
-					framerate = frate;
-				std::cout << "fps: "<<framerate << std::endl;
-
+			auto w = results[1].toInt(&ok);
+			if (ok)
+				resolution.width = w;
+			auto h = results[2].toInt(&ok);
+			if (ok)
+				resolution.height = h;
+			codec.profiles = { results[3] };
+			codec.profile = 0;
+			bool ok2 = true;
+			double fr1 = results[4].split("/")[0].toDouble(&ok);
+			double fr2 = results[4].split("/")[1].toDouble(&ok2);
+			if (ok && ok2) {
+				framerate = fr1 / fr2;
 			}
+			auto dur = results[5].toDouble(&ok);
+			if (ok)
+				vidLength = QTime::fromMSecsSinceStartOfDay((int) (dur * 1000.0));
+			auto bit = results[6].toDouble(&ok);
+			if (ok)
+				bitrate = bit / 1024.0 / 1024.0;
 
-			QString pattern3(", \\d{2,5}x\\d{2,5}(,| \\[)");
-			regex = QRegularExpression(pattern3);
-			match = regex.match(probe);
-			if (match.hasMatch()) {
-				QString res = match.captured(0);
-				QString splitter(",");
-				QString splitter2(" [");
-				QString splitter3("x");
-				QString res12 = res.split(splitter)[1].trimmed();
-				QString res2 = res12.split(splitter2)[0];
-				QString width = res2.split(splitter3)[0];
-				QString height = res2.split(splitter3)[1];
-				int w = width.toInt(&ok);
-				if (ok)
-					resolution.width = w;
-				int h = height.toInt(&ok);
-				if (ok)
-					resolution.height = h;
-				std::cout << "width: "<<resolution.width << " height: " << resolution.height << std::endl;
+			std::vector<QString> parsed;
+			parsed.push_back(QString::number(codec.id));
+			parsed.push_back(QString::number(resolution.width));
+			parsed.push_back(QString::number(resolution.height));
+			parsed.push_back(codec.profiles[codec.profile]);
+			parsed.push_back(QString::number(framerate));
+			parsed.push_back(vidLength.toString());
+			parsed.push_back(QString::number(bitrate));
+			for (int i = 0; i < num_param; i++) {
+				std::cout << parameters[i].toStdString() << ": " << parsed[i].toStdString() << "(" << results[i].toStdString() << ")\n";
 			}
 
 		}
-		QTime vidLength(hours, minutes, seconds, milliseconds); 
+		
+		
 		int msecsMid = vidLength.msecsSinceStartOfDay() / 2;
 		QTime thumbnailTime = QTime::fromMSecsSinceStartOfDay(msecsMid > 3000 ? 3000 : msecsMid); //prefer a thumbnail at 3 seconds or at videoLength / 2, if video is shorter
         QString tempFolder("VideoLow.tmp");
@@ -162,9 +152,9 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		}
 		//        std::cout<<cmd <<"\n--------\n"<<thumb.toStdString()<<std::endl;
 		QPixmap m(thumbnail);
-		auto scaled = m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio);
+		auto scaled = m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio,Qt::SmoothTransformation);
 		previewLabel->setPixmap(scaled);
-		Video vid = { path,  vidLength, resolution, framerate};
+		Video vid = { path,  vidLength, resolution, framerate, codec, bitrate}; //TODO: check if video got detected properly
 		emit newVideoFileDropped(vid);
 		hasDrop = true;
 	}
@@ -183,6 +173,28 @@ bool FileDropWidget::acceptMimeType(QMimeData const * mimeData)
 		}
 	}
 	return false;
+}
+
+QString FileDropWidget::extractParameter(QString const& input, QString parameter)
+{
+	bool contains = input.contains(parameter);
+	if (contains)
+		return input.split(parameter + "=")[1].split("\n")[0].trimmed();
+	else
+		return QString("");
+}
+
+QString FileDropWidget::extractParameterRegex(QString const& input, QString pattern)
+{
+	QRegularExpression regex(pattern);
+
+	auto match = regex.match(input);
+	if (match.hasMatch()) {
+		QString res = match.captured(0);
+		return res;
+	}
+	else
+		return QString("");
 }
 
 QString FileDropWidget::breakLines(QString str, int maxChars)

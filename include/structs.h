@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
 #include <QString>
 #include <QTime>
+#include <vector>
 
 struct Resolution {
 public:
@@ -10,25 +10,18 @@ public:
 	int height;
 };
 
-struct Codec {
-	std::string defaultName;
-	std::string NVIDIA;
-	std::string AMD;
-};
-
-struct Video {
-	QString filePath;
-	QTime length;
-	Resolution resolution;
-	double framerate;
-};
+//struct Codec {
+//	std::string defaultName;
+//	std::string NVIDIA;
+//	std::string AMD;
+//};
 
 struct TrimSettings {
 	QTime start;
 	QTime end;
 	bool trim = false;
 };
-
+//TODO: add 8K
 enum RESOLUTION_IDX {
 	RESOLUTION_AS_INPUT,
 	K4,
@@ -40,12 +33,12 @@ enum RESOLUTION_IDX {
 };
 
 enum HARDWARE_ACCELERATION {
-	NONE = 0,
-	NVIDIA = 1,
-	AMD = 2
+	NONE,
+	NVIDIA,
+	AMD
 };
 
-Resolution const RESOLUTIONS[7] = {
+Resolution const RESOLUTIONS[] = {
 	{
 		0,
 		0
@@ -76,7 +69,7 @@ Resolution const RESOLUTIONS[7] = {
 	}
 };
 
-float const FRAMERATES[5] = {
+float const FRAMERATES[] = {
 	0,
 	30,
 	60,
@@ -85,19 +78,62 @@ float const FRAMERATES[5] = {
 };
 
 enum CODEC_IDX {
-	H264 = 0,
-	HEVC = 1
+	H264,
+	HEVC,
+	UNSUPPORTED
 };
 
-Codec const CODECS[2] = {
+QString const CODEC_IDX_STRINGS[] = {
+	"H264",
+	"HEVC",
+	"Unsupported"
+};
+
+struct CodecConfig {
+	int id;
+	QString name;
+	HARDWARE_ACCELERATION hw_acceleration;
+	QString encoderName;
+	std::vector<QString> profiles;
+	int profile; //also default profile
+	int mainProfile;
+	std::vector<QString> extraOptions;
+};
+
+CodecConfig const DefaultCodecs[2][3] = {
 	{
-		"libx264",
-		"h264_nvenc",
-		"h264_amf"
+		{
+			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::NONE, "libx264", {"Baseline", "Main", "High", "High10", "High444"}, 2, 1, {"", "", "", "", " -pix_fmt yuv444p"}
+		},
+		{
+			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::NVIDIA, "h264_nvenc", {"Baseline", "Main", "High", "High444p"}, 2, 1, {"", "", "", " -pix_fmt yuv444p"}
+		},
+		{
+			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::AMD, "h264_amf", {"Constrained_Baseline", "Main", "High", "Constrained_High"}, 2, 1, {" -quality:v 2"}
+		}
 	},
 	{
-		"libx265",
-		"hevc_nvenc",
-		"hevc_amf"
+		{
+			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::NONE, "libx265", {"Main", "Main10", "Main12"}, 0, 0, {""}
+		},
+		{
+			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::NVIDIA, "hevc_nvenc", {"Main", "Main10", "Rext"}, 0, 0, {""}
+		},
+		{
+			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::AMD, "hevc_amf", {"Main"}, 0, 0, {" -quality:v 0"} //TODO: test AMD codec
+		}
 	}
+};
+
+//CodecConfig getDefaultCodec(CODEC_IDX codec, HARDWARE_ACCELERATION acc = HARDWARE_ACCELERATION::NONE) {
+//	return DefaultCodecs[codec][acc];
+//}
+
+struct Video {
+	QString filePath;
+	QTime length;
+	Resolution resolution;
+	double framerate;
+	CodecConfig codec;
+	double bitrate;
 };

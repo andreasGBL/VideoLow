@@ -19,6 +19,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(WITH_CONSOLE "Start with the Windows console" OFF)
+set(HARDWARE_ACCELERATION_DEFAULT 0 CACHE STRING "Default value for hardware acceleration (0 is none, 1 is Nvidia, 2 is AMD)")
+
 find_package(Qt5 COMPONENTS Widgets Multimedia MultimediaWidgets REQUIRED)
 
 add_executable(${PROJECT_NAME}
@@ -38,13 +41,6 @@ add_executable(${PROJECT_NAME}
     src/VideoCutWindow/videocutwindow.ui
 )
 
-if(NOT DEFINED HARDWARE_ACCELERATION_DEFAULT)
-    set(HARDWARE_ACCELERATION_DEFAULT 0)
-endif()
-
-if(NOT DEFINED WITH_CONSOLE)
-    set(WITH_CONSOLE FALSE)
-endif()
 
 if(WITH_CONSOLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE")
