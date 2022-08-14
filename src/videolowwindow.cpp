@@ -10,8 +10,6 @@
 #include <iostream>
 
 
-//TODO: add vertical Video option
-
 VideoLowWindow::VideoLowWindow(QWidget* parent)
 	: QMainWindow(parent)
 	, ffmpeg(new FFMPEGWrapper())
