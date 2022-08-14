@@ -13,7 +13,7 @@ class FFMPEGWrapper
 {
 public:
 	FFMPEGWrapper();
-	bool exportFile(Video const & video, TrimSettings const & settings, double MBitRate, Resolution const & res, CodecConfig const & codec, int Framerate, bool trimOnly);
+	bool exportFile(Video const & video, TrimSettings const & settings, double MBitRate, Resolution const & res, CodecConfig const & codec, int Framerate, bool trimOnly, bool vertical);
 private:
 	QString getFileName(QString const & filePath);
 	QString getExportFileName(QString const & fileName);
@@ -23,7 +23,7 @@ private:
 	QString getTrimString(QTime const & start, QTime const & end, Video const & video);
 	QString getMBitRateString(double MBitRate);
 	QString getFramerateFilter(double Framerate, double vidFramerate);
-	QString getScaleFilterString(Resolution const & res, Resolution const & vidRes, int HardwareAcceleration);
+	QString getScaleFilterString(Resolution const & res, Resolution const & vidRes, int HardwareAcceleration, bool vertical);
 
 	QString getVideoCodecString(CodecConfig const & codec, bool trimOnly);
 	QString getAudioCodecString(bool canCopy);

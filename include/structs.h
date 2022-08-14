@@ -5,7 +5,6 @@
 #include <vector>
 
 struct Resolution {
-public:
 	int width;
 	int height;
 };

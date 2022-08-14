@@ -18,7 +18,7 @@ FFMPEGWrapper::FFMPEGWrapper()
 	}
 }
 
-bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings, double MBitRate, const Resolution& res, const CodecConfig& codec, int Framerate, bool trimOnly)
+bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings, double MBitRate, const Resolution& res, const CodecConfig& codec, int Framerate, bool trimOnly, bool vertical)
 {
 	const QString& filePath = video.filePath;
 	QString expFilePath = getExportFilePath(filePath);
@@ -32,7 +32,7 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	//filters
 	std::vector<QString> filters;
 	QString framerateFilter = getFramerateFilter(Framerate, video.framerate);
-	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration);
+	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration, vertical);
 
 	//options part2
 	QString audioCodec = getAudioCodecString(settings.start == QTime(0, 0) || !settings.trim || trimOnly);
@@ -124,12 +124,16 @@ QString FFMPEGWrapper::getFramerateFilter(double Framerate, double vidFramerate)
 		return QString("fps=fps=") + QString::number(Framerate);
 }
 
-QString FFMPEGWrapper::getScaleFilterString(Resolution const& res, Resolution const& vidRes, int HardwareAcceleration)
+QString FFMPEGWrapper::getScaleFilterString(Resolution const& res, Resolution const& vidRes, int HardwareAcceleration, bool vertical)
 {
 	if (res.height <= 0 && res.width <= 0 || (res.height == vidRes.height && res.width == vidRes.width)) {
 		return QString("");
 	}
-	QString resolutionString = QString::number(res.width) + ":" + QString::number(res.height);
+	QString d1 = QString::number(res.width);
+	QString d2 = QString::number(res.height);
+	if (vertical)
+		std::swap(d1, d2);
+	QString resolutionString = d1 + ":" + d2;
 	switch (HardwareAcceleration)
 	{
 	case(HARDWARE_ACCELERATION::NVIDIA):

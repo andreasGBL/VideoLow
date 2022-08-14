@@ -322,6 +322,13 @@
                </item>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="verticalVideoCheckbox">
+               <property name="text">
+                <string>Vertical Video</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
