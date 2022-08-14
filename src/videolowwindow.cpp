@@ -90,6 +90,7 @@ void VideoLowWindow::quickH264(double MBitRate)
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				h264,
 				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+				false,
 				false
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
@@ -110,6 +111,7 @@ void VideoLowWindow::quickHEVC(double MBitRate)
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				hevc,
 				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+				false,
 				false
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
@@ -198,7 +200,8 @@ void VideoLowWindow::exportVideo()
 				RESOLUTIONS[ui->ResolutionComboBox->currentIndex()],
 				codec,
 				FRAMERATES[ui->FramerateComboBox->currentIndex()],
-				false
+				false,
+				ui->verticalVideoCheckbox->isChecked()
 			),
 			ui->HardwareAccelerationComboBox->currentIndex() != 0
 		);
@@ -225,7 +228,8 @@ void VideoLowWindow::quickTrimOnly()
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				codec,
 				FRAMERATES[0],
-				true
+				true,
+				false
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
