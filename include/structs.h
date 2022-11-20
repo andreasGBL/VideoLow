@@ -9,12 +9,6 @@ struct Resolution {
 	int height;
 };
 
-//struct Codec {
-//	std::string defaultName;
-//	std::string NVIDIA;
-//	std::string AMD;
-//};
-
 struct TrimSettings {
 	QTime start;
 	QTime end;
@@ -76,55 +70,87 @@ float const FRAMERATES[] = {
 	240
 };
 
-enum CODEC_IDX {
-	H264,
-	HEVC,
-	UNSUPPORTED
+int const AUDIO_BITRATES[] = {
+	0,
+	320,
+	256,
+	192,
+	160,
+	128,
+	64
 };
 
-QString const CODEC_IDX_STRINGS[] = {
+enum VIDEO_CODEC {
+	H264,
+	HEVC,
+	UNSUPPORTED_VIDEO
+};
+
+enum AUDIO_CODEC {
+	AAC,
+	MP3,
+	UNSUPPORTED_AUDIO
+};
+
+QString const VIDEO_CODEC_STRINGS[] = {
 	"H264",
 	"HEVC",
 	"Unsupported"
 };
 
+QString const AUDIO_CODEC_STRINGS[]{
+	"AAC",
+	"MP3",
+	"Unsupported"
+};
+
+QString const AUDIO_ENCODER_STRINGS[]{
+	"aac",
+	"libmp3lame",
+	"Unsupported"
+};
+
 struct CodecConfig {
-	int id;
+	int videoCodec;
 	QString name;
 	HARDWARE_ACCELERATION hw_acceleration;
-	QString encoderName;
+	QString videoEncoderName;
 	std::vector<QString> profiles;
 	int profile; //also default profile
 	int mainProfile;
 	std::vector<QString> extraOptions;
+	int audioBitrateIdx;
+	int audioCodec;
+	QString audioCodecName;
+	QString audioEncoderName;
 };
 
 CodecConfig const DefaultCodecs[2][3] = {
 	{
 		{
-			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::NONE, "libx264", {"Baseline", "Main", "High", "High10", "High444"}, 2, 1, {"", "", "", "", " -pix_fmt yuv444p"}
+			VIDEO_CODEC::H264, VIDEO_CODEC_STRINGS[VIDEO_CODEC::H264], HARDWARE_ACCELERATION::NONE, "libx264", {"Baseline", "Main", "High", "High10", "High444"}, 2, 1, {"", "", "", "", " -pix_fmt yuv444p"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		},
 		{
-			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::NVIDIA, "h264_nvenc", {"Baseline", "Main", "High", "High444p"}, 2, 1, {"", "", "", " -pix_fmt yuv444p"}
+			VIDEO_CODEC::H264, VIDEO_CODEC_STRINGS[VIDEO_CODEC::H264], HARDWARE_ACCELERATION::NVIDIA, "h264_nvenc", {"Baseline", "Main", "High", "High444p"}, 2, 1, {"", "", "", " -pix_fmt yuv444p"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		},
 		{
-			CODEC_IDX::H264, CODEC_IDX_STRINGS[CODEC_IDX::H264], HARDWARE_ACCELERATION::AMD, "h264_amf", {"Constrained_Baseline", "Main", "High", "Constrained_High"}, 2, 1, {" -quality:v 2"}
+			VIDEO_CODEC::H264, VIDEO_CODEC_STRINGS[VIDEO_CODEC::H264], HARDWARE_ACCELERATION::AMD, "h264_amf", {"Constrained_Baseline", "Main", "High", "Constrained_High"}, 2, 1, {" -quality:v 2"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		}
 	},
 	{
 		{
-			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::NONE, "libx265", {"Main", "Main10", "Main12"}, 0, 0, {""}
+			VIDEO_CODEC::HEVC, VIDEO_CODEC_STRINGS[VIDEO_CODEC::HEVC], HARDWARE_ACCELERATION::NONE, "libx265", {"Main", "Main10", "Main12"}, 0, 0, {""}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		},
 		{
-			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::NVIDIA, "hevc_nvenc", {"Main", "Main10", "Rext"}, 0, 0, {""}
+			VIDEO_CODEC::HEVC, VIDEO_CODEC_STRINGS[VIDEO_CODEC::HEVC], HARDWARE_ACCELERATION::NVIDIA, "hevc_nvenc", {"Main", "Main10", "Rext"}, 0, 0, {""}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		},
 		{
-			CODEC_IDX::HEVC, CODEC_IDX_STRINGS[CODEC_IDX::HEVC], HARDWARE_ACCELERATION::AMD, "hevc_amf", {"Main"}, 0, 0, {" -quality:v 0"} //TODO: test AMD codec
+			VIDEO_CODEC::HEVC, VIDEO_CODEC_STRINGS[VIDEO_CODEC::HEVC], HARDWARE_ACCELERATION::AMD, "hevc_amf", {"Main"}, 0, 0, {" -quality:v 0"} /* TODO: test AMD codec */, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		}
 	}
 };
 
-//CodecConfig getDefaultCodec(CODEC_IDX codec, HARDWARE_ACCELERATION acc = HARDWARE_ACCELERATION::NONE) {
+//CodecConfig getDefaultCodec(VIDEO_CODEC codec, HARDWARE_ACCELERATION acc = HARDWARE_ACCELERATION::NONE) {
 //	return DefaultCodecs[codec][acc];
 //}
 
@@ -135,4 +161,6 @@ struct Video {
 	double framerate;
 	CodecConfig codec;
 	double bitrate;
+	double audioBitrate;
+	QTime audioLength;
 };
