@@ -10,7 +10,8 @@ class QMimeData;
 
 namespace acceptedFileTypes {
 	QString const MP4("mp4");
-	QString const ALL[1] = { MP4 };
+	QString const MP3("mp3");
+	QString const ALL[2] = { MP4, MP3 };
 }
 
 class FileDropWidget : public QLabel

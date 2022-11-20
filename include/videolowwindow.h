@@ -38,6 +38,8 @@ private slots:
 	void gotCutInformation(QTime start, QTime end, bool cancelled);
 	void startTimeEdited();
 	void endTimeEdited();
+	void uncheckRemoveAudio(bool isAudioOnlyChecked);
+	void uncheckAudioOnly(bool isRemoveAudioChecked);
 
 public slots:
 	void newVideoFile(Video const & vid);
@@ -52,6 +54,7 @@ private:
 	void quickH264(double MBitRate);
 	void quickHEVC(double MBitRate);
 	void handleExportExitCode(bool success, bool hardwareAcc);
+	void setQuickExportsEnabled(bool enabled);
 
 	TrimSettings getTrimSettings();
 	FFMPEGWrapper *ffmpeg = nullptr;

@@ -10,8 +10,6 @@
 #include <iostream>
 
 
-//TODO: add vertical Video option
-
 VideoLowWindow::VideoLowWindow(QWidget* parent)
 	: QMainWindow(parent)
 	, ffmpeg(new FFMPEGWrapper())
@@ -30,6 +28,12 @@ VideoLowWindow::VideoLowWindow(QWidget* parent)
 	connectSlots();
 	setWindowFlags(Qt::Window | Qt::MSWindowsFixedSizeDialogHint);
 	this->statusBar()->setSizeGripEnabled(false);
+	for (int i = 0; i < AUDIO_CODEC::UNSUPPORTED_AUDIO; i++) {
+		ui->AudioCodecComboBox->addItem(AUDIO_CODEC_STRINGS[i]);
+	}
+	for (int i = 0; i < VIDEO_CODEC::UNSUPPORTED_VIDEO; i++) {
+		ui->CodecComboBox->addItem(VIDEO_CODEC_STRINGS[i]);
+	}
 	codecConfigChanged(0);
 }
 
@@ -68,30 +72,43 @@ void VideoLowWindow::connectSlots()
 	QObject::connect(ui->EndTimeEdit, &QTimeEdit::editingFinished, this, &VideoLowWindow::endTimeEdited);
 
 	QObject::connect(ui->DropWidget, &FileDropWidget::newVideoFileDropped, this, &VideoLowWindow::newVideoFile);
+
+	QObject::connect(ui->AudioOnlyCheckBox, &QCheckBox::toggled, this, &VideoLowWindow::uncheckRemoveAudio);
+	QObject::connect(ui->RemoveAudioCheckBox, &QCheckBox::toggled, this, &VideoLowWindow::uncheckAudioOnly);
+
 }
 
 CodecConfig VideoLowWindow::getCodecConfig()
 {
-	CodecConfig codec = DefaultCodecs[CODEC_IDX(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
+	CodecConfig codec = DefaultCodecs[VIDEO_CODEC(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
 	codec.profile = ui->ProfileComboBox->currentIndex();
+	codec.audioCodec = ui->AudioCodecComboBox->currentIndex();
+	codec.audioCodecName = AUDIO_CODEC_STRINGS[codec.audioCodec];
+	codec.audioEncoderName = AUDIO_ENCODER_STRINGS[codec.audioCodec];
+	codec.audioBitrateIdx = ui->audioBitrateComboBox->currentIndex();
 	return codec;
 }
 
 void VideoLowWindow::quickH264(double MBitRate)
 {
 	if (currentVideo) {
-		CodecConfig h264 = DefaultCodecs[CODEC_IDX::H264][HARDWARE_ACCELERATION(ui->HardwareAccelerationQuickComboBox->currentIndex())];
+		CodecConfig h264 = DefaultCodecs[VIDEO_CODEC::H264][HARDWARE_ACCELERATION(ui->HardwareAccelerationQuickComboBox->currentIndex())];
 		h264.profile = h264.mainProfile;
+		ExportSettings exp = {
+			MBitRate,
+			FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+			false,
+			false,
+			false,
+			false
+		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
 				*currentVideo,
 				getTrimSettings(),
-				MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				h264,
-				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
-				false,
-				false
+				exp
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
@@ -101,18 +118,23 @@ void VideoLowWindow::quickH264(double MBitRate)
 void VideoLowWindow::quickHEVC(double MBitRate)
 {
 	if (currentVideo) {
-		CodecConfig hevc = DefaultCodecs[CODEC_IDX::HEVC][HARDWARE_ACCELERATION(ui->HardwareAccelerationQuickComboBox->currentIndex())];
+		CodecConfig hevc = DefaultCodecs[VIDEO_CODEC::HEVC][HARDWARE_ACCELERATION(ui->HardwareAccelerationQuickComboBox->currentIndex())];
 		hevc.profile = hevc.mainProfile;
+		ExportSettings exp = {
+			MBitRate,
+			FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
+			false,
+			false,
+			false,
+			false
+		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
 				*currentVideo,
 				getTrimSettings(),
-				MBitRate,
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				hevc,
-				FRAMERATES[ui->FramerateQuickComboBox->currentIndex()],
-				false,
-				false
+				exp
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
@@ -133,6 +155,19 @@ void VideoLowWindow::handleExportExitCode(bool success, bool hardwareAcc)
 		std::cout << "Successful export!" << std::endl;
 		ui->ErrorLabel->clear();
 	}
+}
+
+void VideoLowWindow::setQuickExportsEnabled(bool enabled)
+{
+	ui->H264_2->setEnabled(enabled);
+	ui->H264_4->setEnabled(enabled);
+	ui->H264_8->setEnabled(enabled);
+	ui->H264_16->setEnabled(enabled);
+
+	ui->HEVC_2->setEnabled(enabled);
+	ui->HEVC_4->setEnabled(enabled);
+	ui->HEVC_8->setEnabled(enabled);
+	ui->HEVC_16->setEnabled(enabled);
 }
 
 TrimSettings VideoLowWindow::getTrimSettings()
@@ -192,16 +227,22 @@ void VideoLowWindow::exportVideo()
 	std::cout << "export" << std::endl;
 	if (currentVideo) {
 		auto codec = getCodecConfig();
+		ExportSettings exp = {
+			ui->BitrateDoubleSpinBox->value(),
+			FRAMERATES[ui->FramerateComboBox->currentIndex()],
+			false,
+			ui->verticalVideoCheckbox->isChecked(),
+			ui->AudioOnlyCheckBox->isChecked(),
+			ui->RemoveAudioCheckBox->isChecked()
+		};
+
 		handleExportExitCode(
 			ffmpeg->exportFile(
 				*currentVideo,
 				getTrimSettings(),
-				ui->BitrateDoubleSpinBox->value(),
 				RESOLUTIONS[ui->ResolutionComboBox->currentIndex()],
 				codec,
-				FRAMERATES[ui->FramerateComboBox->currentIndex()],
-				false,
-				ui->verticalVideoCheckbox->isChecked()
+				exp
 			),
 			ui->HardwareAccelerationComboBox->currentIndex() != 0
 		);
@@ -219,17 +260,22 @@ void VideoLowWindow::reviewVideo()
 void VideoLowWindow::quickTrimOnly()
 {
 	if (currentVideo) {
-		CodecConfig codec = DefaultCodecs[CODEC_IDX::H264][HARDWARE_ACCELERATION::NONE]; //default parameters as it doesnt matter for this trimming
+		CodecConfig codec = DefaultCodecs[VIDEO_CODEC::H264][HARDWARE_ACCELERATION::NONE]; //default parameters as it doesnt matter for this trimming
+		ExportSettings exp = {
+			ui->BitrateDoubleSpinBox->value(),
+			FRAMERATES[0],
+			true,
+			false,
+			false,
+			false
+		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
 				*currentVideo,
 				getTrimSettings(),
-				ui->BitrateDoubleSpinBox->value(),
 				RESOLUTIONS[RESOLUTION_IDX::RESOLUTION_AS_INPUT],
 				codec,
-				FRAMERATES[0],
-				true,
-				false
+				exp
 			),
 			ui->HardwareAccelerationQuickComboBox->currentIndex() != 0
 		);
@@ -238,7 +284,7 @@ void VideoLowWindow::quickTrimOnly()
 
 void VideoLowWindow::codecConfigChanged(int)
 {
-	auto codec = DefaultCodecs[CODEC_IDX(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
+	auto codec = DefaultCodecs[VIDEO_CODEC(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
 	int count = ui->ProfileComboBox->count();
 	for (int i = 0; i < count; i++) {
 		ui->ProfileComboBox->removeItem(0);
@@ -283,30 +329,88 @@ void VideoLowWindow::endTimeEdited()
 	ui->EndTimeEdit->setTime(current);
 }
 
+void VideoLowWindow::uncheckRemoveAudio(bool isAudioOnlyChecked)
+{
+	if(isAudioOnlyChecked)
+		ui->RemoveAudioCheckBox->setChecked(false);
+}
+
+void VideoLowWindow::uncheckAudioOnly(bool isRemoveAudioChecked)
+{
+	if (isRemoveAudioChecked)
+		ui->AudioOnlyCheckBox->setChecked(false);
+}
+
 void VideoLowWindow::newVideoFile(Video const& vid)
 {
+	ui->SettingsTab->setCurrentIndex(0);
+	ui->AudioTab->setEnabled(true);
+	ui->VideoTab->setEnabled(true);
+	ui->VideoInfoLayout->setEnabled(true);
+	ui->AudioInfoLayout->setEnabled(true);
+	setQuickExportsEnabled(true);
+
+	ui->RemoveAudioCheckBox->setChecked(false);
+	ui->RemoveAudioCheckBox->setEnabled(true);
+	ui->AudioOnlyCheckBox->setChecked(false);
+	ui->AudioOnlyCheckBox->setEnabled(true);
+
 	if (!currentVideo) {
 		currentVideo = new Video(vid);
 	}
 	else
 		*currentVideo = vid;
+	bool unsupportedVideo = vid.codec.videoCodec == VIDEO_CODEC::UNSUPPORTED_VIDEO;
+	bool unsupportedAudio = vid.codec.audioCodec == AUDIO_CODEC::UNSUPPORTED_AUDIO;
+
 	QTime zero(0, 0);
 	ui->reviewVideoButton->setDisabled(false);
 	ui->trimVideoCheckBox->setChecked(false);
 	ui->startTimeEdit->setTime(zero);
 	ui->EndTimeEdit->setTime(vid.length);
-	ui->videoLengthTimeEdit->setTime(vid.length);
-	if (vid.resolution.width && vid.resolution.height)
+	if (vid.length.msec() == -1 || unsupportedVideo) {
+		ui->videoLengthTimeEdit->setTime(zero);
+	}
+	else {
+		ui->videoLengthTimeEdit->setTime(vid.length);
+	}
+	if (vid.resolution.width && vid.resolution.height && !unsupportedVideo)
 		ui->videoResolutionLabel->setText(QString::number(vid.resolution.width) + "x" + QString::number(vid.resolution.height));
 	else
 		ui->videoResolutionLabel->setText("-");
-	if (vid.framerate)
+	if (vid.framerate && !unsupportedVideo)
 		ui->videoFramerateLabel->setText(QString::number(vid.framerate, 'f', 2) + " fps");
 	else
 		ui->videoFramerateLabel->setText("-");
 
 	ui->videoCodecLabel->setText(vid.codec.name + " (" + vid.codec.profiles[vid.codec.profile] + ")");
-	ui->videoBitrateLabel->setText(vid.bitrate == 0. ? QString("-") : QString::number(vid.bitrate, 'f', 2) + " MBit/s");
+	ui->videoBitrateLabel->setText((vid.bitrate == 0. || unsupportedVideo) ? QString("-") : QString::number(vid.bitrate, 'f', 2) + " MBit/s");
+
+	ui->audioCodecLabel->setText(vid.codec.audioCodecName);
+
+	if (unsupportedAudio) {
+		//disable audio
+		ui->AudioTab->setEnabled(false);
+		ui->audioBitrateLabel->setText("-");
+		ui->audioLengthTimeEdit->setTime(zero);
+	}
+	else {
+		ui->audioBitrateLabel->setText(QString::number(vid.audioBitrate * 1000.0, 'f', 2) + " KBit/s");
+		ui->audioLengthTimeEdit->setTime(vid.audioLength);
+	}
+
+	if (unsupportedVideo) {
+		//disable video
+		ui->VideoTab->setEnabled(false);
+		ui->SettingsTab->setCurrentIndex(1);
+		//disable all quick export except trimming
+		setQuickExportsEnabled(false);
+		//disable remove audio and audio only while selecting audio only
+		ui->RemoveAudioCheckBox->setChecked(false);
+		ui->RemoveAudioCheckBox->setEnabled(false);
+		ui->AudioOnlyCheckBox->setChecked(true);
+		ui->AudioOnlyCheckBox->setEnabled(false);
+	}
 }
 
 

@@ -18,10 +18,10 @@ FFMPEGWrapper::FFMPEGWrapper()
 	}
 }
 
-bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings, double MBitRate, const Resolution& res, const CodecConfig& codec, int Framerate, bool trimOnly, bool vertical)
+bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings, const Resolution& res, const CodecConfig& codec, const ExportSettings & exports)
 {
 	const QString& filePath = video.filePath;
-	QString expFilePath = getExportFilePath(filePath);
+	QString expFilePath = getExportFilePath(filePath, exports.audioOnly, codec.audioCodecName);
 	std::cout << "Export File Path: " << expFilePath.toStdString().c_str() << std::endl;
 	QString cmd = "ffmpeg -y ";
 	//options part 1
@@ -31,18 +31,25 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 
 	//filters
 	std::vector<QString> filters;
-	QString framerateFilter = getFramerateFilter(Framerate, video.framerate);
-	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration, vertical);
+	QString framerateFilter = getFramerateFilter(exports.framerate, video.framerate);
+	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration, exports.vertical);
 
 	//options part2
-	QString audioCodec = getAudioCodecString(settings.start == QTime(0, 0) || !settings.trim || trimOnly);
-	QString videoCodec = getVideoCodecString(codec, trimOnly);
-	QString bitrate = getMBitRateString(MBitRate);
+	QString audioCodec = getAudioCodecString(video, settings, codec, exports);
+	QString videoCodec = getVideoCodecString(codec, exports.trimOnly);
+	QString bitrate = getMBitRateString(exports.VideoMBitRate);
 	QString outputFile = getOutputFileString(expFilePath);
 
 	//options part1 hwac
 	QString hwacc = getHardwareAccelerationString(codec.hw_acceleration, scaleFilter.length() > 0);
 
+	if (exports.audioOnly) {
+		videoCodec = "-vn";
+		bitrate = "";
+		hwacc = "";
+		framerateFilter = "";
+		scaleFilter = "";
+	}
 	//add options part 1
 	if (trimming.length() > 0 && settings.trim)
 		cmd += trimming + " ";
@@ -79,11 +86,11 @@ QString FFMPEGWrapper::getFileName(QString const& filePath)
 	return filePath.mid(lastIdx);
 }
 
-QString FFMPEGWrapper::getExportFileName(QString const& fileName)
+QString FFMPEGWrapper::getExportFileName(QString const& fileName, bool audioOnly, const QString & audioFileType)
 {
 	auto endIdx = fileName.lastIndexOf(".");
 	auto file = fileName.mid(0, endIdx);
-	auto ending = fileName.mid(endIdx + 1);
+	auto ending = audioOnly ? audioFileType : fileName.mid(endIdx + 1);
 	return file + "Export." + ending;
 }
 
@@ -93,10 +100,10 @@ QString FFMPEGWrapper::getPath(QString const& filePath)
 	return filePath.mid(0, lastIdx);
 }
 
-QString FFMPEGWrapper::getExportFilePath(QString const& filePath)
+QString FFMPEGWrapper::getExportFilePath(QString const& filePath, bool audioOnly, const QString & audioFileType)
 {
 	QString fileName = getFileName(filePath);
-	return getPath(filePath) + getExportFileName(fileName);
+	return getPath(filePath) + getExportFileName(fileName, audioOnly, audioFileType);
 }
 
 QString FFMPEGWrapper::getTrimString(QTime const& start, QTime const& end, Video const& video)
@@ -126,13 +133,15 @@ QString FFMPEGWrapper::getFramerateFilter(double Framerate, double vidFramerate)
 
 QString FFMPEGWrapper::getScaleFilterString(Resolution const& res, Resolution const& vidRes, int HardwareAcceleration, bool vertical)
 {
-	if (res.height <= 0 && res.width <= 0 || (res.height == vidRes.height && res.width == vidRes.width)) {
+	int w = res.width, h = res.height;
+	if (vertical)
+		std::swap(w, h);
+	if (h <= 0 && w <= 0 || (h == vidRes.height && w == vidRes.width)) {
 		return QString("");
 	}
-	QString d1 = QString::number(res.width);
-	QString d2 = QString::number(res.height);
-	if (vertical)
-		std::swap(d1, d2);
+	QString d1 = QString::number(w);
+	QString d2 = QString::number(h);
+	
 	QString resolutionString = d1 + ":" + d2;
 	switch (HardwareAcceleration)
 	{
@@ -150,16 +159,21 @@ QString FFMPEGWrapper::getVideoCodecString(CodecConfig const& codec, bool trimOn
 		return prefix + "copy";
 	}
 	else {
-		return prefix + codec.encoderName + " -vprofile " + codec.profiles[codec.profile].toLower() + codec.extraOptions[codec.profile % codec.extraOptions.size()]; // use modulo to never go out of bounds on shorter vectors
+		return prefix + codec.videoEncoderName + " -vprofile " + codec.profiles[codec.profile].toLower() + codec.extraOptions[codec.profile % codec.extraOptions.size()]; // use modulo to never go out of bounds on shorter vectors
 	}
 }
 
-QString FFMPEGWrapper::getAudioCodecString(bool canCopy)
+QString FFMPEGWrapper::getAudioCodecString(const Video& video, const TrimSettings& settings, const CodecConfig& codec, const ExportSettings& exports)
 {
+	bool canCopy = ((settings.start == QTime(0, 0) || !settings.trim) && codec.audioCodec == video.codec.audioCodec && codec.audioBitrateIdx == 0) || exports.trimOnly;
+	int audioBitrate = AUDIO_BITRATES[codec.audioBitrateIdx];
+	QString audioBitrateString = codec.audioBitrateIdx == 0 ? "" : " -b:a " + QString::number(audioBitrate) + "K";
 	if (canCopy)
 		return QString("-c:a copy");
+	else if (exports.videoOnly)
+		return QString("-an");
 	else
-		return QString("");
+		return QString("-c:a " + codec.audioEncoderName + audioBitrateString);
 }
 
 QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration, bool usesScaleFilter)
