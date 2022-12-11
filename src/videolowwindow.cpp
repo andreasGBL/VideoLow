@@ -9,6 +9,7 @@
 #include <QString>
 #include <iostream>
 
+//TODO: "as Input" checkbox for bitrate
 
 VideoLowWindow::VideoLowWindow(QWidget* parent)
 	: QMainWindow(parent)
@@ -22,18 +23,19 @@ VideoLowWindow::VideoLowWindow(QWidget* parent)
 	ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationComboBox->update();
-	//ui->DropWidget->setVideoLowWindowPointer(this);
 	ui->DropWidget->setPreviewLabelPointer(ui->PreviewLabel);
 	ui->PreviewLabel->setDropWidgetPointer(ui->DropWidget);
 	connectSlots();
 	setWindowFlags(Qt::Window | Qt::MSWindowsFixedSizeDialogHint);
 	this->statusBar()->setSizeGripEnabled(false);
+	//fill Comboboxes with content
 	for (int i = 0; i < AUDIO_CODEC::UNSUPPORTED_AUDIO; i++) {
 		ui->AudioCodecComboBox->addItem(AUDIO_CODEC_STRINGS[i]);
 	}
 	for (int i = 0; i < VIDEO_CODEC::UNSUPPORTED_VIDEO; i++) {
 		ui->CodecComboBox->addItem(VIDEO_CODEC_STRINGS[i]);
 	}
+	//load default codec settings for codec 0
 	codecConfigChanged(0);
 }
 
@@ -382,14 +384,14 @@ void VideoLowWindow::newVideoFile(Video const& vid)
 		ui->videoFramerateLabel->setText(QString::number(vid.framerate, 'f', 2) + " fps");
 	else
 		ui->videoFramerateLabel->setText("-");
-
+	//TODO: detect vertical video
 	ui->videoCodecLabel->setText(vid.codec.name + " (" + vid.codec.profiles[vid.codec.profile] + ")");
 	ui->videoBitrateLabel->setText((vid.bitrate == 0. || unsupportedVideo) ? QString("-") : QString::number(vid.bitrate, 'f', 2) + " MBit/s");
 
 	ui->audioCodecLabel->setText(vid.codec.audioCodecName);
 
 	if (unsupportedAudio) {
-		//disable audio
+		//disable audio tab
 		ui->AudioTab->setEnabled(false);
 		ui->audioBitrateLabel->setText("-");
 		ui->audioLengthTimeEdit->setTime(zero);
@@ -400,7 +402,7 @@ void VideoLowWindow::newVideoFile(Video const& vid)
 	}
 
 	if (unsupportedVideo) {
-		//disable video
+		//disable video tab
 		ui->VideoTab->setEnabled(false);
 		ui->SettingsTab->setCurrentIndex(1);
 		//disable all quick export except trimming
