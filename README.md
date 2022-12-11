@@ -1,10 +1,10 @@
 # VideoLow
-VideoLow is a lightweight, free tool for Windows based on [ffmpeg](https://github.com/FFmpeg/FFmpeg) that allows you to compress, transcode and trim /clip mp4 videos easily.
+VideoLow is a lightweight, free tool for Windows based on [ffmpeg](https://github.com/FFmpeg/FFmpeg) that allows you to compress, transcode and trim /clip mp4 videos (and also audio files (mp3 and aac)) easily.
 This is the perfect tool if you want to create a clip from a video to send to your friends. 
 Avoid large file sizes by selecting a smaller bitrate and speed up the process by utilizing your GPU.
 
 
-It currently supports h.264 and hevc (h.265) codecs.
+It currently supports h.264 and hevc (h.265) video codecs, as well as mp3 and aac audio codecs.
 The GUI is made with [QT 5](https://github.com/qt/qt5).
 
 # Download
@@ -12,17 +12,18 @@ The GUI is made with [QT 5](https://github.com/qt/qt5).
 
 # Features
 - select a video per drag & drop
-- review videos with a built-in video player
+- review videos / audio with a built-in video player
+- trim videos / audio
 - select start and end position for the trimmed part during playback
-- choose to export the video with specific settings
+- choose to export the video / audio with specific settings
+- remove audio from a video or only export the audio
 - quick export options for easier access
 - trim only function that trims the video without reencoding which results in an almost instantly trimmed video
 - supports AMD (amf) and Nvidia (nvenc) hardware accelerated codecs
 
+![Main Window](https://user-images.githubusercontent.com/29144928/206918013-8584c8d9-c00f-4f2b-b3bf-8848a5af1377.png)
 
-![Main Window](https://user-images.githubusercontent.com/29144928/179365038-718c2bde-14a4-483e-94a4-a938b62b65c9.png)
-
-![Trim Window](https://user-images.githubusercontent.com/29144928/179365071-6dcb87a8-bb8b-4992-8292-5f58e82a7aa5.png)
+![Trim Window](https://user-images.githubusercontent.com/29144928/206918099-7c68bcff-838a-4ad8-ac36-2995273cbf69.png)
 
 
 # Build
@@ -42,8 +43,8 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 ## Create a Clip / Trim a video
 - Import video per drag & drop
 - Change start and end time or click "Review Video", watch the video and press "Set Start" and "Set End" whenever you feel like it, afterwards press "Confirm and close"
-- Select "Trim Video" if not already selected
-- Choose "Only Trim Video" to export the Clip without reencoding the Clip (very fast) or export the clip with the Export configuration or use a quick export option (slower, but more customizable)
+- Select "Trim Video" Check Box at the bottom of the Window if not already selected
+- Choose "Only Trim Video" in Quick Export settings to export the Clip without reencoding the Clip (very fast), export the clip with the Export configuration or use another Quick Export option (slower, but more customizable)
 - Your file will be right next to your input video, but with the ending "Export.mp4"
 
 ## Transcode a Video
@@ -75,9 +76,10 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 
 # Known problems / limitations
 - no linux support
-- videos with special characters in the file name aren't supported
-- qt can't handle every video in the built-in video player
+- videos with non ASCII / special characters in the file name aren't supported (e.g. emojis, ...)
+- qt can't handle every video / audio in the built-in video player
 - when the hardware accelerated codecs fail, try updating your drivers - if that doesn't work try different parameters and maybe try to change some parameters back to "As Input"
+- AMD hardware acceleration is just barely tested
 - A maximum video length of 23:59:59.999 (up to 24 hours of video) is supported
 
 # License
