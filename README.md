@@ -84,3 +84,5 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 
 # License
 This open source software is licensed under [GPLv3](LICENSE).
+
+Copyright © 2020 [andreasGBL](https://github.com/andreasGBL/). 
