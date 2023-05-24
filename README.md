@@ -81,6 +81,7 @@ Alternatively just download the latest [Release](https://github.com/andreasGBL/V
 - when the hardware accelerated codecs fail, try updating your drivers - if that doesn't work try different parameters and maybe try to change some parameters back to "As Input"
 - AMD hardware acceleration is just barely tested
 - A maximum video length of 23:59:59.999 (up to 24 hours of video) is supported
+- No AV1 support yet, although it is already supported by ffmpeg
 
 # License
 This open source software is licensed under [GPLv3](LICENSE).

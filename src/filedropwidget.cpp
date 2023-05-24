@@ -7,7 +7,7 @@
 #include <QMimeData>
 #include <QRegularExpression>
 #include <QDir>
-
+#include <QMessageBox>
 
 #include <iostream>
 #include <cstdio>
@@ -59,6 +59,19 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 	if (acceptMimeType(mimeData)) {
 		//accept File
 		QString path = mimeData->text().split("file:///")[1];
+		bool unsupported_chars = false;
+		QString unsupported("");
+		for (QChar ch : path) {
+			if (ch.unicode() > 127) {
+				unsupported_chars = true;
+				unsupported += ch;
+			}
+		}
+		if (unsupported_chars) {
+			std::cout << "Unsupported Characters in File name.\n";
+			QMessageBox::critical(nullptr, "Error", "Unsupported Characters in File name:\n(\"" + unsupported + "\")\n");
+			return;
+		}
 		std::cout << "New File: " << path.toStdString() << std::endl;
 		setText(tr(breakLines(path, 40).toStdString().c_str()));
 

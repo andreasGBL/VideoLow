@@ -59,7 +59,10 @@ void VideoCutWindow::setInitialStartAndEnd(QTime const & start, QTime const & en
 void VideoCutWindow::closeWindow(QTime start, QTime end, bool cancelled)
 {
 	emit newCutInformation(start, end, cancelled);
-	mediaPlayer->pause();
+	// only pause when the end of the video isn't reached yet to prevent weird "DirectShowPlayerService::doRender: Unresolved error code 0x80040218 (IDispatch error #24)" bug:
+	if (getTimeForVideoPosition(mediaPlayer->position()) < currentVideo->length) { 
+		mediaPlayer->pause(); 
+	}
 	this->setVisible(false);
 }
 
