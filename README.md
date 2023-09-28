@@ -7,6 +7,10 @@ Avoid large file sizes by selecting a smaller bitrate and speed up the process b
 It currently supports h.264 and hevc (h.265) video codecs, as well as mp3 and aac audio codecs.
 The GUI is made with [QT 5](https://github.com/qt/qt5).
 
+# Video playback codecs
+For video playback to work you might need to download some codecs, due to QT relying on an old legacy feature called [Directshow](https://learn.microsoft.com/en-us/windows/win32/directshow/directshow) which is not included in Windows anymore. 
+Therefore you need to install DirectShow Codecs with codec packs like [K-Lite Codec Pack Basic](https://codecguide.com/download_k-lite_codec_pack_basic.htm).
+
 # Download
 [Latest Github Release](https://github.com/andreasGBL/VideoLow/releases/latest)
 
