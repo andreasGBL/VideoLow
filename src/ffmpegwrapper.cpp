@@ -33,6 +33,7 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	std::vector<QString> filters;
 	QString framerateFilter = getFramerateFilter(exports.framerate, video.framerate);
 	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration, exports.vertical);
+	QString transformFilter = getTransformFilterString(exports.transformConfig, exports.vertical);
 
 	//options part2
 	QString audioCodec = getAudioCodecString(video, settings, codec, exports);
@@ -60,6 +61,8 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 		filters.push_back(framerateFilter);
 	if (scaleFilter.length() > 0)
 		filters.push_back(scaleFilter);
+	if (transformFilter.length() > 0)
+		filters.push_back(transformFilter);
 
 	//Add filters:
 	QString videoFilterString("-vf \"");
@@ -150,6 +153,19 @@ QString FFMPEGWrapper::getScaleFilterString(Resolution const& res, Resolution co
 	default:
 		return QString("scale=") + resolutionString;
 	}
+}
+
+QString FFMPEGWrapper::getTransformFilterString(TRANSFORM_CONFIG const& t_config, bool vertical)
+{
+	QString options[6] = {
+		"",
+		"transpose=1",
+		"transpose=1,transpose=1",
+		"transpose=2",
+		"hflip",
+		"vflip"
+	};
+	return options[t_config];
 }
 
 QString FFMPEGWrapper::getVideoCodecString(CodecConfig const& codec, bool trimOnly)

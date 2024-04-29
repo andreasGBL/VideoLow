@@ -102,7 +102,8 @@ void VideoLowWindow::quickH264(double MBitRate)
 			false,
 			false,
 			false,
-			false
+			false,
+			TRANSFORM_CONFIG::IDENTITY
 		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
@@ -128,7 +129,8 @@ void VideoLowWindow::quickHEVC(double MBitRate)
 			false,
 			false,
 			false,
-			false
+			false,
+			TRANSFORM_CONFIG::IDENTITY
 		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
@@ -229,13 +231,17 @@ void VideoLowWindow::exportVideo()
 	std::cout << "export" << std::endl;
 	if (currentVideo) {
 		auto codec = getCodecConfig();
+		int transformIndex = ui->transformCombobox->currentIndex();
+		TRANSFORM_CONFIG transform = static_cast<TRANSFORM_CONFIG>((transformIndex < TRANSFORM_CONFIG::IDENTITY || transformIndex >= TRANSFORM_CONFIG::SIZE) ? 0 : transformIndex);
+
 		ExportSettings exp = {
 			ui->BitrateDoubleSpinBox->value(),
 			FRAMERATES[ui->FramerateComboBox->currentIndex()],
 			false,
 			ui->verticalVideoCheckbox->isChecked(),
 			ui->AudioOnlyCheckBox->isChecked(),
-			ui->RemoveAudioCheckBox->isChecked()
+			ui->RemoveAudioCheckBox->isChecked(),
+			transform
 		};
 
 		handleExportExitCode(
@@ -269,7 +275,8 @@ void VideoLowWindow::quickTrimOnly()
 			true,
 			false,
 			false,
-			false
+			false,
+			TRANSFORM_CONFIG::IDENTITY
 		};
 		handleExportExitCode(
 			ffmpeg->exportFile(
