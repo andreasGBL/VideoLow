@@ -5,6 +5,7 @@ struct TrimSettings;
 struct CodecConfig;
 struct Resolution;
 struct Video;
+enum TRANSFORM_CONFIG;
 
 class QTime;
 class QString;
@@ -16,6 +17,7 @@ struct ExportSettings {
 	bool vertical;
 	bool audioOnly;
 	bool videoOnly;
+	TRANSFORM_CONFIG transformConfig ;
 };
 
 class FFMPEGWrapper
@@ -33,6 +35,7 @@ private:
 	QString getMBitRateString(double MBitRate);
 	QString getFramerateFilter(double Framerate, double vidFramerate);
 	QString getScaleFilterString(Resolution const & res, Resolution const & vidRes, int HardwareAcceleration, bool vertical);
+	QString getTransformFilterString(TRANSFORM_CONFIG const& t_config, bool vertical);
 
 	QString getVideoCodecString(CodecConfig const & codec, bool trimOnly);
 	QString getAudioCodecString(const Video& video, const TrimSettings& settings, const CodecConfig& codec, const ExportSettings& exports);

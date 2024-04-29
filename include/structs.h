@@ -62,6 +62,16 @@ Resolution const RESOLUTIONS[] = {
 	}
 };
 
+enum TRANSFORM_CONFIG {
+	IDENTITY,
+	PLUS90,
+	PLUS180,
+	PLUS270,
+	HFLIP,
+	VFLIP,
+	SIZE //last element, denoted as size
+};
+
 float const FRAMERATES[] = {
 	0,
 	30,
