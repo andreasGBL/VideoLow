@@ -29,6 +29,7 @@ add_executable(${PROJECT_NAME}
     include/filedropwidget.h
     include/filepreviewwidget.h
     include/ffmpegwrapper.h
+    include/videolowpaths.h
     include/structs.h
     include/VideoCutWindow/videocutwindow.h
     include/VideoCutWindow/videoplayerwidget.h
@@ -62,10 +63,10 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMENT "Deploying Qt library files...")
 
 #copy ffmpeg
-configure_file("./ffmpeg.exe" "./ffmpeg.exe" COPYONLY)
-configure_file("./ffmpeg.exe" "./Release/ffmpeg.exe" COPYONLY)
-configure_file("./ffmpeg.exe" "./Debug/ffmpeg.exe" COPYONLY)
+configure_file("./ffmpeg.exe.qcomp" "./ffmpeg.exe.qcomp" COPYONLY)
+configure_file("./ffmpeg.exe.qcomp" "./Release/ffmpeg.exe.qcomp" COPYONLY)
+configure_file("./ffmpeg.exe.qcomp" "./Debug/ffmpeg.exe.qcomp" COPYONLY)
 
-configure_file("./ffprobe.exe" "./ffprobe.exe" COPYONLY)
-configure_file("./ffprobe.exe" "./Release/ffprobe.exe" COPYONLY)
-configure_file("./ffprobe.exe" "./Debug/ffprobe.exe" COPYONLY)
+configure_file("./ffprobe.exe.qcomp" "./ffprobe.exe.qcomp" COPYONLY)
+configure_file("./ffprobe.exe.qcomp" "./Release/ffprobe.exe.qcomp" COPYONLY)
+configure_file("./ffprobe.exe.qcomp" "./Debug/ffprobe.exe.qcomp" COPYONLY)

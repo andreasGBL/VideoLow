@@ -1,4 +1,5 @@
 #include "include/filedropwidget.h"
+#include "include/videolowpaths.h"
 
 #include <include/structs.h>
 
@@ -8,6 +9,7 @@
 #include <QRegularExpression>
 #include <QDir>
 #include <QMessageBox>
+#include <QFileInfo>
 
 #include <iostream>
 #include <cstdio>
@@ -72,11 +74,17 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 			QMessageBox::critical(nullptr, "Error", "Unsupported Characters in File name:\n(\"" + unsupported + "\")\n");
 			return;
 		}
+		QFileInfo info(path);
+		std::vector<QString> files;
+		if (info.exists() && info.isDir()) {
+			
+		}
+		
 		std::cout << "New File: " << path.toStdString() << std::endl;
 		setText(tr(breakLines(path, 40).toStdString().c_str()));
 
 		//Call FFProbe to get file information
-		std::string cmd = "ffprobe.exe -hide_banner -show_streams -v error -i \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+		std::string cmd = "\"" + VideoLowPaths::ffprobeExecutable().toStdString() + "\" -hide_banner -show_streams -v error -i \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString probe("");
 		Resolution resolution = {0, 0};
 		double framerate = 0.;
@@ -173,7 +181,7 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 			}
 
 			//extract audio data
-			if (videoStream != "") {
+			if (audioStream != "") {
 				const int num_param = 3;
 				QString parameters[num_param] = { "codec_name", "duration", "bit_rate" };
 				std::vector<QString> results;
@@ -214,12 +222,10 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		//thumbnail generation
 		int msecsMid = vidLength.msecsSinceStartOfDay() / 2;
 		QTime thumbnailTime = QTime::fromMSecsSinceStartOfDay(msecsMid > 3000 ? 3000 : msecsMid); //prefer a thumbnail at 3 seconds or at videoLength / 2, if video is shorter
-        QString tempFolder("VideoLow.tmp");
-        QDir::temp().mkdir(tempFolder); //create temporary folder for thumbnail
-        QString thumbnail = QDir::tempPath()+QString("/"+tempFolder+"/thumb.jpg");
+		QString thumbnail = QDir(VideoLowPaths::temporaryDirectory()).filePath("thumb.jpg");
 		QString format("hh:mm:ss.zzz");
 
-		cmd = "ffmpeg -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=1000:1000:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
+		cmd = "\"" + VideoLowPaths::ffmpegExecutable().toStdString() + "\" -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=1000:1000:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		if (codec.videoCodec != VIDEO_CODEC::UNSUPPORTED_VIDEO) {
 			QString thumb;
 			{
@@ -257,9 +263,15 @@ bool FileDropWidget::acceptMimeType(QMimeData const * mimeData)
 		QString text = mimeData->text();
 		if (text.startsWith("file:///")) {
 			QString filePath = text.split("file:///")[1];
-			for (QString ending : acceptedFileTypes::ALL) {
-				if (text.endsWith("." + ending))
-					return true;
+			QFileInfo info(filePath);
+			if (info.exists() && info.isDir()) {
+				return true;
+			}
+			else {
+				for (QString ending : acceptedFileTypes::ALL) {
+					if (text.endsWith("." + ending))
+						return true;
+				}
 			}
 		}
 	}

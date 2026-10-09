@@ -83,7 +83,8 @@ void VideoLowWindow::connectSlots()
 CodecConfig VideoLowWindow::getCodecConfig()
 {
 	CodecConfig codec = DefaultCodecs[VIDEO_CODEC(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
-	codec.profile = ui->ProfileComboBox->currentIndex();
+	if (!codec.profiles.empty())
+		codec.profile = ui->ProfileComboBox->currentIndex();
 	codec.audioCodec = ui->AudioCodecComboBox->currentIndex();
 	codec.audioCodecName = AUDIO_CODEC_STRINGS[codec.audioCodec];
 	codec.audioEncoderName = AUDIO_ENCODER_STRINGS[codec.audioCodec];
@@ -299,10 +300,13 @@ void VideoLowWindow::codecConfigChanged(int)
 		ui->ProfileComboBox->removeItem(0);
 	}
 	auto const& profiles = codec.profiles;
+	ui->label_18->setVisible(!profiles.empty());
+	ui->ProfileComboBox->setVisible(!profiles.empty());
 	for (auto const& profile : profiles) {
 		ui->ProfileComboBox->addItem(profile);
 	}
-	ui->ProfileComboBox->setCurrentIndex(codec.profile);
+	if (!profiles.empty())
+		ui->ProfileComboBox->setCurrentIndex(codec.profile);
 }
 
 void VideoLowWindow::gotCutInformation(QTime start, QTime end, bool cancelled)
