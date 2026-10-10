@@ -93,6 +93,7 @@ int const AUDIO_BITRATES[] = {
 enum VIDEO_CODEC {
 	H264,
 	HEVC,
+	AV1,
 	UNSUPPORTED_VIDEO
 };
 
@@ -105,6 +106,7 @@ enum AUDIO_CODEC {
 QString const VIDEO_CODEC_STRINGS[] = {
 	"H264",
 	"HEVC",
+	"AV1",
 	"Unsupported"
 };
 
@@ -135,7 +137,7 @@ struct CodecConfig {
 	QString audioEncoderName;
 };
 
-CodecConfig const DefaultCodecs[2][3] = {
+CodecConfig const DefaultCodecs[VIDEO_CODEC::UNSUPPORTED_VIDEO][3] = {
 	{
 		{
 			VIDEO_CODEC::H264, VIDEO_CODEC_STRINGS[VIDEO_CODEC::H264], HARDWARE_ACCELERATION::NONE, "libx264", {"Baseline", "Main", "High", "High10", "High444"}, 2, 1, {"", "", "", "", " -pix_fmt yuv444p"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
@@ -156,6 +158,17 @@ CodecConfig const DefaultCodecs[2][3] = {
 		},
 		{
 			VIDEO_CODEC::HEVC, VIDEO_CODEC_STRINGS[VIDEO_CODEC::HEVC], HARDWARE_ACCELERATION::AMD, "hevc_amf", {"Main"}, 0, 0, {" -quality:v 0"} /* TODO: test AMD codec */, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
+		}
+	},
+	{
+		{
+			VIDEO_CODEC::AV1, VIDEO_CODEC_STRINGS[VIDEO_CODEC::AV1], HARDWARE_ACCELERATION::NONE, "libaom-av1", {"Main", "High", "Professional"}, 0, 0, {" -cpu-used 8", " -pix_fmt yuv444p -cpu-used 8", " -pix_fmt yuv444p12le -cpu-used 8"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
+		},
+		{
+			VIDEO_CODEC::AV1, VIDEO_CODEC_STRINGS[VIDEO_CODEC::AV1], HARDWARE_ACCELERATION::NVIDIA, "av1_nvenc", {}, 0, 0, {""}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
+		},
+		{
+			VIDEO_CODEC::AV1, VIDEO_CODEC_STRINGS[VIDEO_CODEC::AV1], HARDWARE_ACCELERATION::AMD, "av1_amf", {"Main"}, 0, 0, {" -quality:v 30"}, 0, AUDIO_CODEC::AAC, AUDIO_CODEC_STRINGS[AUDIO_CODEC::AAC], AUDIO_ENCODER_STRINGS[AUDIO_CODEC::AAC]
 		}
 	}
 };

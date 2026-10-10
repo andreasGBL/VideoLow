@@ -7,6 +7,11 @@
 #include "include/structs.h"
 
 #include <QString>
+#include <QAction>
+#include <QDialog>
+#include <QMenu>
+#include <QTextBrowser>
+#include <QVBoxLayout>
 #include <iostream>
 
 //TODO: "as Input" checkbox for bitrate
@@ -19,6 +24,35 @@ VideoLowWindow::VideoLowWindow(QWidget* parent)
 {
 
 	ui->setupUi(this);
+	auto* helpMenu = ui->menubar->addMenu(tr("&Help"));
+	auto* aboutAction = helpMenu->addAction(tr("About VideoLow"));
+	QObject::connect(aboutAction, &QAction::triggered, this, [this]() {
+		QDialog dialog(this);
+		dialog.setWindowTitle(tr("About VideoLow"));
+		dialog.resize(720, 520);
+		auto* layout = new QVBoxLayout(&dialog);
+		auto* text = new QTextBrowser(&dialog);
+		text->setOpenExternalLinks(true);
+		text->setHtml(tr(R"HTML(
+<h2>VideoLow</h2>
+<p>Copyright (C) 2021-2026 <a href="https://github.com/andreasGBL">andreasGBL</a>.<br>
+Project: <a href="https://github.com/andreasGBL/VideoLow">github.com/andreasGBL/VideoLow</a></p>
+<p>VideoLow is distributed under the GNU General Public License, version 3. It is provided "as is", without any express or implied warranty, including merchantability or fitness for a particular purpose. See the project's <b>LICENSE</b> file in its source repository or the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3 text</a> for the license terms.</p>
+<h2>FFmpeg and FFprobe 6.1</h2>
+<p>VideoLow launches FFmpeg and FFprobe as separate command-line programs; it does not link to FFmpeg libraries. The bundled Gyan.dev full build identifies itself as GPL version 3 or later and is configured with GPL-enabled components, including static libraries.</p>
+<p>FFmpeg legal information: <a href="https://ffmpeg.org/legal.html">ffmpeg.org/legal.html</a><br>
+Build and source information: <a href="https://www.gyan.dev/ffmpeg/builds/">gyan.dev/ffmpeg/builds</a></p>
+<p>Redistribution of these binaries requires compliance with the applicable GPL terms, including providing the corresponding source and build information for the exact binaries and included components.</p>
+<h2>Qt 5</h2>
+<p>VideoLow uses Qt shared libraries, including Qt Core, Gui, Widgets, Multimedia, and MultimediaWidgets. They are dynamically linked and deployed as DLLs. Qt open-source modules are available under LGPL version 3 or GPL version 3, depending on the module.</p>
+<p>Qt licensing: <a href="https://doc.qt.io/archives/qt-5.15/licensing.html">Qt 5 licensing</a><br>
+Qt third-party components: <a href="https://doc.qt.io/archives/qt-5.15/licenses-used-in-qt.html">Licenses used in Qt 5.15</a><br>
+LGPL version 3: <a href="https://www.gnu.org/licenses/lgpl-3.0.html">gnu.org/licenses/lgpl-3.0.html</a></p>
+<p>Qt and FFmpeg are trademarks or projects of their respective owners. This notice is informational and does not replace any license texts or corresponding-source obligations.</p>
+)HTML"));
+		layout->addWidget(text);
+		dialog.exec();
+	});
 	ui->centralwidget->resize(width() - 10, height() - 10);
 	ui->HardwareAccelerationComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
 	ui->HardwareAccelerationQuickComboBox->setCurrentIndex(HARDWARE_ACCELERATION_DEFAULT);
@@ -83,7 +117,8 @@ void VideoLowWindow::connectSlots()
 CodecConfig VideoLowWindow::getCodecConfig()
 {
 	CodecConfig codec = DefaultCodecs[VIDEO_CODEC(ui->CodecComboBox->currentIndex())][HARDWARE_ACCELERATION(ui->HardwareAccelerationComboBox->currentIndex())];
-	codec.profile = ui->ProfileComboBox->currentIndex();
+	if (!codec.profiles.empty())
+		codec.profile = ui->ProfileComboBox->currentIndex();
 	codec.audioCodec = ui->AudioCodecComboBox->currentIndex();
 	codec.audioCodecName = AUDIO_CODEC_STRINGS[codec.audioCodec];
 	codec.audioEncoderName = AUDIO_ENCODER_STRINGS[codec.audioCodec];
@@ -299,10 +334,13 @@ void VideoLowWindow::codecConfigChanged(int)
 		ui->ProfileComboBox->removeItem(0);
 	}
 	auto const& profiles = codec.profiles;
+	ui->label_18->setVisible(!profiles.empty());
+	ui->ProfileComboBox->setVisible(!profiles.empty());
 	for (auto const& profile : profiles) {
 		ui->ProfileComboBox->addItem(profile);
 	}
-	ui->ProfileComboBox->setCurrentIndex(codec.profile);
+	if (!profiles.empty())
+		ui->ProfileComboBox->setCurrentIndex(codec.profile);
 }
 
 void VideoLowWindow::gotCutInformation(QTime start, QTime end, bool cancelled)

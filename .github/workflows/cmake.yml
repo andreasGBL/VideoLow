@@ -15,19 +15,23 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v1  # not v2!
-      with:
-        path: ../Qt
-        key: ${{ runner.os }}-QtCache
+      uses: actions/checkout@v7
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v4
       with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Verify compressed FFmpeg tools
+      shell: pwsh
+      run: |
+        $files = @("ffmpeg.exe.qcomp", "ffprobe.exe.qcomp")
+        foreach ($file in $files) {
+          if (!(Test-Path $file)) { throw "Missing compressed FFmpeg tool: $file" }
+          if ((Get-Item $file).Length -ge 100MB) { throw "Compressed FFmpeg tool exceeds GitHub's 100 MB file limit: $file" }
+        }
       
     - name: Configure Standard
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow" -DHARDWARE_ACCELERATION_DEFAULT=0 -DWITH_CONSOLE=0
@@ -39,19 +43,23 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v1  # not v2!
-      with:
-        path: ../Qt
-        key: ${{ runner.os }}-QtCache
+      uses: actions/checkout@v7
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v4
       with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Verify compressed FFmpeg tools
+      shell: pwsh
+      run: |
+        $files = @("ffmpeg.exe.qcomp", "ffprobe.exe.qcomp")
+        foreach ($file in $files) {
+          if (!(Test-Path $file)) { throw "Missing compressed FFmpeg tool: $file" }
+          if ((Get-Item $file).Length -ge 100MB) { throw "Compressed FFmpeg tool exceeds GitHub's 100 MB file limit: $file" }
+        }
       
     - name: Configure Nvidia
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_Nvidia" -DHARDWARE_ACCELERATION_DEFAULT=1 -DWITH_CONSOLE=0
@@ -63,19 +71,23 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v1  # not v2!
-      with:
-        path: ../Qt
-        key: ${{ runner.os }}-QtCache
+      uses: actions/checkout@v7
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v4
       with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}      
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Verify compressed FFmpeg tools
+      shell: pwsh
+      run: |
+        $files = @("ffmpeg.exe.qcomp", "ffprobe.exe.qcomp")
+        foreach ($file in $files) {
+          if (!(Test-Path $file)) { throw "Missing compressed FFmpeg tool: $file" }
+          if ((Get-Item $file).Length -ge 100MB) { throw "Compressed FFmpeg tool exceeds GitHub's 100 MB file limit: $file" }
+        }
       
     - name: Configure AMD
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_AMD" -DHARDWARE_ACCELERATION_DEFAULT=2 -DWITH_CONSOLE=0
@@ -87,19 +99,23 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Cache Qt
-      id: cache-qt
-      uses: actions/cache@v1  # not v2!
-      with:
-        path: ../Qt
-        key: ${{ runner.os }}-QtCache
+      uses: actions/checkout@v7
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v4
       with:
-        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Verify compressed FFmpeg tools
+      shell: pwsh
+      run: |
+        $files = @("ffmpeg.exe.qcomp", "ffprobe.exe.qcomp")
+        foreach ($file in $files) {
+          if (!(Test-Path $file)) { throw "Missing compressed FFmpeg tool: $file" }
+          if ((Get-Item $file).Length -ge 100MB) { throw "Compressed FFmpeg tool exceeds GitHub's 100 MB file limit: $file" }
+        }
       
     - name: Configure DBEUG
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DPROJECT_NAME="VideoLow_DEBUG" -DHARDWARE_ACCELERATION_DEFAULT=0 -DWITH_CONSOLE=1
@@ -107,3 +123,30 @@ jobs:
     - name: Build DEBUG
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
       
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build_standard, build_nvidia, build_amd, build_debug]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Package release
+      run: py -3 .\package_release.py
+
+    - name: Publish release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{github.token}}
+      run: |
+        $version = (Get-Content version.txt -Raw).Trim()
+        gh release create "v$version" "VideoLow.$version.Windows.x64.zip" --target $env:GITHUB_SHA --title "VideoLow $version" --generate-notes

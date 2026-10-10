@@ -1,18 +1,25 @@
 #include "../include/ffmpegwrapper.h"
+#include "../include/videolowpaths.h"
 
 #include <include/structs.h>
 
+#include <QFile>
+#include <QProcess>
 #include <QStringList>
 
-#include <fstream>
 #include <iostream>
 #include <cstdlib>
 
+namespace {
+void appendOptions(QStringList& arguments, const QString& options)
+{
+	arguments.append(options.split(' ', QString::SkipEmptyParts));
+}
+}
 
 FFMPEGWrapper::FFMPEGWrapper()
 {
-	std::ifstream f("./ffmpeg.exe");
-	if (!f.good()) {
+	if (!QFile::exists(VideoLowPaths::ffmpegExecutable())) {
 		std::cerr << "Can't find ffmpeg..." << std::endl;
 		std::abort();
 	}
@@ -23,26 +30,30 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	const QString& filePath = video.filePath;
 	QString expFilePath = getExportFilePath(filePath, exports.audioOnly, codec.audioCodecName);
 	std::cout << "Export File Path: " << expFilePath.toStdString().c_str() << std::endl;
-	QString cmd = "ffmpeg -y ";
+	QStringList arguments;
+	arguments << "-y";
 	//options part 1
 	QString trimming = getTrimString(settings.start, settings.end, video);
-
-	QString inputFile = getInputFileString(filePath);
 
 	//filters
 	std::vector<QString> filters;
 	QString framerateFilter = getFramerateFilter(exports.framerate, video.framerate);
-	QString scaleFilter = getScaleFilterString(res, video.resolution, codec.hw_acceleration, exports.vertical);
 	QString transformFilter = getTransformFilterString(exports.transformConfig, exports.vertical);
+	bool canUseCudaScale = codec.hw_acceleration == HARDWARE_ACCELERATION::NVIDIA &&
+		framerateFilter.isEmpty() && transformFilter.isEmpty();
+	QString scaleFilter = getScaleFilterString(
+		res,
+		video.resolution,
+		canUseCudaScale ? HARDWARE_ACCELERATION::NVIDIA : HARDWARE_ACCELERATION::NONE,
+		exports.vertical);
 
 	//options part2
 	QString audioCodec = getAudioCodecString(video, settings, codec, exports);
 	QString videoCodec = getVideoCodecString(codec, exports.trimOnly);
 	QString bitrate = getMBitRateString(exports.VideoMBitRate);
-	QString outputFile = getOutputFileString(expFilePath);
 
 	//options part1 hwac
-	QString hwacc = getHardwareAccelerationString(codec.hw_acceleration, scaleFilter.length() > 0);
+	QString hwacc = getHardwareAccelerationString(codec.hw_acceleration, canUseCudaScale && !scaleFilter.isEmpty());
 
 	if (exports.audioOnly) {
 		videoCodec = "-vn";
@@ -53,10 +64,10 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	}
 	//add options part 1
 	if (trimming.length() > 0 && settings.trim)
-		cmd += trimming + " ";
+		appendOptions(arguments, trimming);
 	if (hwacc.length() > 0)
-		cmd += hwacc + " ";
-	cmd += inputFile + " ";
+		appendOptions(arguments, hwacc);
+	arguments << "-i" << filePath;
 	if (framerateFilter.length() > 0)
 		filters.push_back(framerateFilter);
 	if (scaleFilter.length() > 0)
@@ -65,22 +76,22 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 		filters.push_back(transformFilter);
 
 	//Add filters:
-	QString videoFilterString("-vf \"");
-	for (int i = 0; i < filters.size(); i++) {
-		videoFilterString += filters[i];
-		if (i + 1 < filters.size())
-			videoFilterString += ", ";
+	if (!filters.empty()) {
+		QStringList filterList;
+		for (const QString& filter : filters)
+			filterList << filter;
+		arguments << "-vf" << filterList.join(", ");
 	}
-	videoFilterString += "\" ";
-	if (filters.size() > 0)
-		cmd += videoFilterString;
 
 	//add options part 2
-	cmd += audioCodec + " " + videoCodec + " " + bitrate + " " + outputFile;
-	std::cout << cmd.toStdString() << std::endl;
-	//execute command
-	int exitCode = system(cmd.toStdString().c_str());
-	return exitCode == 0;
+	appendOptions(arguments, audioCodec);
+	appendOptions(arguments, videoCodec);
+	appendOptions(arguments, bitrate);
+	arguments << expFilePath;
+	QProcess process;
+	process.start(VideoLowPaths::ffmpegExecutable(), arguments);
+	return process.waitForStarted() && process.waitForFinished(-1) &&
+		process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
 }
 
 QString FFMPEGWrapper::getFileName(QString const& filePath)
@@ -175,7 +186,13 @@ QString FFMPEGWrapper::getVideoCodecString(CodecConfig const& codec, bool trimOn
 		return prefix + "copy";
 	}
 	else {
-		return prefix + codec.videoEncoderName + " -vprofile " + codec.profiles[codec.profile].toLower() + codec.extraOptions[codec.profile % codec.extraOptions.size()]; // use modulo to never go out of bounds on shorter vectors
+		QString profileOption;
+		if (!codec.profiles.empty())
+			profileOption = " -vprofile " + codec.profiles[codec.profile].toLower();
+		QString extraOptions;
+		if (!codec.extraOptions.empty())
+			extraOptions = codec.extraOptions[codec.profile % codec.extraOptions.size()];
+		return prefix + codec.videoEncoderName + profileOption + extraOptions;
 	}
 }
 
@@ -184,10 +201,11 @@ QString FFMPEGWrapper::getAudioCodecString(const Video& video, const TrimSetting
 	bool canCopy = ((settings.start == QTime(0, 0) || !settings.trim) && codec.audioCodec == video.codec.audioCodec && codec.audioBitrateIdx == 0) || exports.trimOnly;
 	int audioBitrate = AUDIO_BITRATES[codec.audioBitrateIdx];
 	QString audioBitrateString = codec.audioBitrateIdx == 0 ? "" : " -b:a " + QString::number(audioBitrate) + "K";
-	if (canCopy)
+	
+	if (exports.videoOnly)
+		return QString("-an"); 
+	else if (canCopy)
 		return QString("-c:a copy");
-	else if (exports.videoOnly)
-		return QString("-an");
 	else
 		return QString("-c:a " + codec.audioEncoderName + audioBitrateString);
 }
@@ -201,16 +219,6 @@ QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration, b
 	default:
 		return QString("");
 	}
-}
-
-QString FFMPEGWrapper::getInputFileString(QString const& filePath)
-{
-	return "-i \"" + filePath + "\"";
-}
-
-QString FFMPEGWrapper::getOutputFileString(QString const& filePath)
-{
-	return "\"" + filePath + "\"";
 }
 
 QString FFMPEGWrapper::toTimeString(QTime const& t)
@@ -234,4 +242,3 @@ QString FFMPEGWrapper::toDigits(int number, int digits)
 	string += QString::number(number);
 	return string;
 }
-
