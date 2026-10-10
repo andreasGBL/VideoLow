@@ -3,17 +3,23 @@
 
 #include <include/structs.h>
 
+#include <QFile>
+#include <QProcess>
 #include <QStringList>
 
-#include <fstream>
 #include <iostream>
 #include <cstdlib>
 
+namespace {
+void appendOptions(QStringList& arguments, const QString& options)
+{
+	arguments.append(options.split(' ', QString::SkipEmptyParts));
+}
+}
 
 FFMPEGWrapper::FFMPEGWrapper()
 {
-	std::ifstream f(VideoLowPaths::ffmpegExecutable().toStdString());
-	if (!f.good()) {
+	if (!QFile::exists(VideoLowPaths::ffmpegExecutable())) {
 		std::cerr << "Can't find ffmpeg..." << std::endl;
 		std::abort();
 	}
@@ -24,11 +30,10 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	const QString& filePath = video.filePath;
 	QString expFilePath = getExportFilePath(filePath, exports.audioOnly, codec.audioCodecName);
 	std::cout << "Export File Path: " << expFilePath.toStdString().c_str() << std::endl;
-	QString cmd = "\"" + VideoLowPaths::ffmpegExecutable() + "\" -y ";
+	QStringList arguments;
+	arguments << "-y";
 	//options part 1
 	QString trimming = getTrimString(settings.start, settings.end, video);
-
-	QString inputFile = getInputFileString(filePath);
 
 	//filters
 	std::vector<QString> filters;
@@ -46,7 +51,6 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	QString audioCodec = getAudioCodecString(video, settings, codec, exports);
 	QString videoCodec = getVideoCodecString(codec, exports.trimOnly);
 	QString bitrate = getMBitRateString(exports.VideoMBitRate);
-	QString outputFile = getOutputFileString(expFilePath);
 
 	//options part1 hwac
 	QString hwacc = getHardwareAccelerationString(codec.hw_acceleration, canUseCudaScale && !scaleFilter.isEmpty());
@@ -60,10 +64,10 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 	}
 	//add options part 1
 	if (trimming.length() > 0 && settings.trim)
-		cmd += trimming + " ";
+		appendOptions(arguments, trimming);
 	if (hwacc.length() > 0)
-		cmd += hwacc + " ";
-	cmd += inputFile + " ";
+		appendOptions(arguments, hwacc);
+	arguments << "-i" << filePath;
 	if (framerateFilter.length() > 0)
 		filters.push_back(framerateFilter);
 	if (scaleFilter.length() > 0)
@@ -72,22 +76,22 @@ bool FFMPEGWrapper::exportFile(const Video& video, const TrimSettings& settings,
 		filters.push_back(transformFilter);
 
 	//Add filters:
-	QString videoFilterString("-vf \"");
-	for (int i = 0; i < filters.size(); i++) {
-		videoFilterString += filters[i];
-		if (i + 1 < filters.size())
-			videoFilterString += ", ";
+	if (!filters.empty()) {
+		QStringList filterList;
+		for (const QString& filter : filters)
+			filterList << filter;
+		arguments << "-vf" << filterList.join(", ");
 	}
-	videoFilterString += "\" ";
-	if (filters.size() > 0)
-		cmd += videoFilterString;
 
 	//add options part 2
-	cmd += audioCodec + " " + videoCodec + " " + bitrate + " " + outputFile;
-	std::cout << cmd.toStdString() << std::endl;
-	//execute command
-	int exitCode = system(cmd.toStdString().c_str());
-	return exitCode == 0;
+	appendOptions(arguments, audioCodec);
+	appendOptions(arguments, videoCodec);
+	appendOptions(arguments, bitrate);
+	arguments << expFilePath;
+	QProcess process;
+	process.start(VideoLowPaths::ffmpegExecutable(), arguments);
+	return process.waitForStarted() && process.waitForFinished(-1) &&
+		process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
 }
 
 QString FFMPEGWrapper::getFileName(QString const& filePath)
@@ -217,16 +221,6 @@ QString FFMPEGWrapper::getHardwareAccelerationString(int HardwareAcceleration, b
 	}
 }
 
-QString FFMPEGWrapper::getInputFileString(QString const& filePath)
-{
-	return "-i \"" + filePath + "\"";
-}
-
-QString FFMPEGWrapper::getOutputFileString(QString const& filePath)
-{
-	return "\"" + filePath + "\"";
-}
-
 QString FFMPEGWrapper::toTimeString(QTime const& t)
 {
 	QString time = toDigits(t.hour(), 2) + ":" + toDigits(t.minute(), 2) + ":" + toDigits(t.second(), 2) + "." + toDigits(t.msec(), 3);
@@ -248,4 +242,3 @@ QString FFMPEGWrapper::toDigits(int number, int digits)
 	string += QString::number(number);
 	return string;
 }
-
