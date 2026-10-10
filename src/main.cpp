@@ -3,28 +3,14 @@
 
 #include <QApplication>
 #include <QByteArray>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSaveFile>
-#include <QDateTime>
 
 namespace {
-bool setModificationTime(const QString& filePath, const QDateTime& modified, QString& error)
-{
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadWrite)) {
-        error = "Can't open " + filePath + ": " + file.errorString();
-        return false;
-    }
-    if (!file.setFileTime(modified, QFileDevice::FileModificationTime)) {
-        error = "Can't set modification time for " + filePath + ": " + file.errorString();
-        return false;
-    }
-    return true;
-}
-
 bool extractExecutable(const QString& fileName, QString& error)
 {
     const QString compressedPath = QDir(QApplication::applicationDirPath()).filePath(fileName + ".qcomp");
@@ -40,11 +26,6 @@ bool extractExecutable(const QString& fileName, QString& error)
         error = "Can't find " + compressedPath;
         return false;
     }
-    const QDateTime compressedModified = compressedInfo.lastModified();
-    QFileInfo outputInfo(outputPath);
-    if (outputInfo.isFile() && outputInfo.lastModified() >= compressedModified)
-        return setModificationTime(outputPath, compressedModified, error);
-
     QFile source(compressedPath);
     if (!source.open(QIODevice::ReadOnly)) {
         error = "Can't read " + compressedPath + ": " + source.errorString();
@@ -61,6 +42,15 @@ bool extractExecutable(const QString& fileName, QString& error)
         return false;
     }
 
+    QFile existing(outputPath);
+    if (existing.open(QIODevice::ReadOnly)) {
+        const QByteArray existingContents = existing.readAll();
+        if (existing.error() == QFileDevice::NoError &&
+            QCryptographicHash::hash(existingContents, QCryptographicHash::Sha256) ==
+                QCryptographicHash::hash(contents, QCryptographicHash::Sha256))
+            return true;
+    }
+
     QSaveFile output(outputPath);
     if (!output.open(QIODevice::WriteOnly)) {
         error = "Can't write " + outputPath + ": " + output.errorString();
@@ -70,7 +60,7 @@ bool extractExecutable(const QString& fileName, QString& error)
         error = "Can't save " + outputPath + ": " + output.errorString();
         return false;
     }
-    return setModificationTime(outputPath, compressedModified, error);
+    return true;
 }
 }
 

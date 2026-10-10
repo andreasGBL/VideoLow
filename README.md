@@ -20,7 +20,7 @@ The GUI is made with [Qt 5.15.2](https://www.qt.io/).
 - quick export options for easier access
 - trim only function that trims the video without reencoding which results in an almost instantly trimmed video
 - supports AMD AMF and NVIDIA NVENC hardware encoding
-- view third-party license information from Help > Third-Party Licenses
+- view third-party license information from Help > About VideoLow
 
 ![Main Window](https://user-images.githubusercontent.com/29144928/206918013-8584c8d9-c00f-4f2b-b3bf-8848a5af1377.png)
 
@@ -94,6 +94,6 @@ py -3 .\compress_executables.py
 
 # License
 This open source software is licensed under [GPLv3](LICENSE).
-This GPLv3 app uses the GPLv3-or-later FFmpeg 6.1 build and dynamically linked Qt 5. See Help > Third-Party Licenses for details.
+This GPLv3 app uses the GPLv3-or-later FFmpeg 6.1 build and dynamically linked Qt 5. See Help > About VideoLow for details.
 
 Copyright © 2021 - 2026 [andreasGBL](https://github.com/andreasGBL/).

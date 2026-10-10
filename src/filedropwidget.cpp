@@ -10,9 +10,10 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QProcess>
+#include <QStringList>
 
 #include <iostream>
-#include <cstdio>
 
 FileDropWidget::FileDropWidget(QWidget * parent) : QLabel(parent)
 {
@@ -74,17 +75,10 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 			QMessageBox::critical(nullptr, "Error", "Unsupported Characters in File name:\n(\"" + unsupported + "\")\n");
 			return;
 		}
-		QFileInfo info(path);
-		std::vector<QString> files;
-		if (info.exists() && info.isDir()) {
-			
-		}
-		
 		std::cout << "New File: " << path.toStdString() << std::endl;
 		setText(tr(breakLines(path, 40).toStdString().c_str()));
 
 		//Call FFProbe to get file information
-		std::string cmd = "\"" + VideoLowPaths::ffprobeExecutable().toStdString() + "\" -hide_banner -show_streams -v error -i \"" + path.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		QString probe("");
 		Resolution resolution = {0, 0};
 		double framerate = 0.;
@@ -94,14 +88,12 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		CodecConfig codec;
 		{
 			{
-				FILE* f;
-				f = _popen(cmd.c_str(), "r");
-				char buff[128];
-				if (f) {
-					while (fgets(buff, 128, f)) {
-						probe.append(buff);
-					}
-				}
+				QProcess process;
+				process.setProcessChannelMode(QProcess::MergedChannels);
+				process.start(VideoLowPaths::ffprobeExecutable(),
+					QStringList() << "-hide_banner" << "-show_streams" << "-v" << "error" << "-i" << path);
+				if (process.waitForStarted() && process.waitForFinished(-1))
+					probe = QString::fromLocal8Bit(process.readAll());
 			}
 			probe += "\n";
 			std::cout << "Probe:" << probe.toStdString() << std::endl;
@@ -225,20 +217,17 @@ void FileDropWidget::dropEvent(QDropEvent * event)
 		QString thumbnail = QDir(VideoLowPaths::temporaryDirectory()).filePath("thumb.jpg");
 		QString format("hh:mm:ss.zzz");
 
-		cmd = "\"" + VideoLowPaths::ffmpegExecutable().toStdString() + "\" -y -i \"" + path.toStdString() + "\" -ss " + thumbnailTime.toString(format).toStdString() + " -vf \"scale=1000:1000:force_original_aspect_ratio=decrease\" -vframes 1 \"" + thumbnail.toStdString() + "\" 2>&1"; //redirect stderr to stdout
 		if (codec.videoCodec != VIDEO_CODEC::UNSUPPORTED_VIDEO) {
-			QString thumb;
 			{
-				FILE* f;
-				f = _popen(cmd.c_str(), "r");
-				char buff[128];
-				if (f) {
-					while (fgets(buff, 128, f)) {
-						thumb.append(buff);
-					}
-				}
+				QProcess process;
+				process.setProcessChannelMode(QProcess::MergedChannels);
+				process.start(VideoLowPaths::ffmpegExecutable(),
+					QStringList() << "-y" << "-i" << path << "-ss" << thumbnailTime.toString(format)
+						<< "-vf" << "scale=1000:1000:force_original_aspect_ratio=decrease"
+						<< "-vframes" << "1" << thumbnail);
+				if (process.waitForStarted() && process.waitForFinished(-1))
+					process.readAll();
 			}
-			//std::cout << cmd << "\n--------\n" << thumb.toStdString() << std::endl;
 			QPixmap m(thumbnail);
 			auto scaled = m.scaled(previewLabel->width(), previewLabel->height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
 			previewLabel->setText("");
@@ -265,7 +254,7 @@ bool FileDropWidget::acceptMimeType(QMimeData const * mimeData)
 			QString filePath = text.split("file:///")[1];
 			QFileInfo info(filePath);
 			if (info.exists() && info.isDir()) {
-				return true;
+				return false;
 			}
 			else {
 				for (QString ending : acceptedFileTypes::ALL) {

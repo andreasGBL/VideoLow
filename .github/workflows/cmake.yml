@@ -123,3 +123,30 @@ jobs:
     - name: Build DEBUG
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
       
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build_standard, build_nvidia, build_amd, build_debug]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Package release
+      run: py -3 .\package_release.py
+
+    - name: Publish release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{github.token}}
+      run: |
+        $version = (Get-Content version.txt -Raw).Trim()
+        gh release create "v$version" "VideoLow.$version.Windows.x64.zip" --target $env:GITHUB_SHA --title "VideoLow $version" --generate-notes
