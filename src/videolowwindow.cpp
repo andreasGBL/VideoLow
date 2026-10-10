@@ -39,9 +39,9 @@ VideoLowWindow::VideoLowWindow(QWidget* parent)
 Project: <a href="https://github.com/andreasGBL/VideoLow">github.com/andreasGBL/VideoLow</a></p>
 <p>VideoLow is distributed under the GNU General Public License, version 3. It is provided "as is", without any express or implied warranty, including merchantability or fitness for a particular purpose. See the project's <b>LICENSE</b> file in its source repository or the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3 text</a> for the license terms.</p>
 <h2>FFmpeg and FFprobe 6.1</h2>
-<p>VideoLow launches FFmpeg and FFprobe as separate command-line programs; it does not link to FFmpeg libraries. The bundled Gyan.dev full build identifies itself as GPL version 3 or later and is configured with GPL-enabled components, including static libraries.</p>
+<p>VideoLow launches FFmpeg and FFprobe as separate command-line programs; it does not link to FFmpeg libraries. The bundled binaries were downloaded from <a href="https://github.com/BtbN/FFmpeg-Builds/releases">BtbN's FFmpeg-Builds releases</a> and use GPL-enabled components.</p>
 <p>FFmpeg legal information: <a href="https://ffmpeg.org/legal.html">ffmpeg.org/legal.html</a><br>
-Build and source information: <a href="https://www.gyan.dev/ffmpeg/builds/">gyan.dev/ffmpeg/builds</a></p>
+BtbN build sources: <a href="https://github.com/BtbN/FFmpeg-Builds">github.com/BtbN/FFmpeg-Builds</a></p>
 <p>Redistribution of these binaries requires compliance with the applicable GPL terms, including providing the corresponding source and build information for the exact binaries and included components.</p>
 <h2>Qt 5</h2>
 <p>VideoLow uses Qt shared libraries, including Qt Core, Gui, Widgets, Multimedia, and MultimediaWidgets. They are dynamically linked and deployed as DLLs. Qt open-source modules are available under LGPL version 3 or GPL version 3, depending on the module.</p>
